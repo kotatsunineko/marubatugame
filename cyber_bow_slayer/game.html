@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Cyber Bow Slayer v9.6 (Visual Blast Update)</title>
+    <title>Cyber Bow Slayer v9.7 (Boss Anti-Freeze Update)</title>
     <style>
         * {
             box-sizing: border-box;
@@ -242,7 +242,7 @@
         let particles = [];
         let meteors = [];      
         let blastCircles = []; 
-        let lightningLines = []; // 【新規】連鎖電撃の可視化用配列
+        let lightningLines = []; 
         let spawnTimer = 0;
         let spawnInterval = 120;
         let bossWarningTimer = 0;
@@ -308,7 +308,6 @@
             return '#ff00aa';
         }
 
-        // 【新規】ジグザグの稲妻パスを生成する関数
         function createLightningPath(x1, y1, x2, y2) {
             let path = [{x: x1, y: y1}];
             let dx = x2 - x1; let dy = y2 - y1;
@@ -319,8 +318,8 @@
             for (let i = 1; i < steps; i++) {
                 let t = i / steps;
                 let cx = x1 + dx * t; let cy = y1 + dy * t;
-                let nx = -dy / dist; let ny = dx / dist; // 垂直ベクトル
-                let offset = (Math.random() - 0.5) * 14; // ジグザグの振幅
+                let nx = -dy / dist; let ny = dx / dist; 
+                let offset = (Math.random() - 0.5) * 14; 
                 path.push({ x: cx + nx * offset, y: cy + ny * offset });
             }
             path.push({ x: x2, y: y2 });
@@ -406,7 +405,6 @@
 
             if (player.cooldownTimer > 0) player.cooldownTimer--;
 
-            // 【新規】電撃エフェクトのフェードアウト更新
             for (let i = lightningLines.length - 1; i >= 0; i--) {
                 lightningLines[i].alpha -= 0.14;
                 if (lightningLines[i].alpha <= 0) lightningLines.splice(i, 1);
@@ -529,7 +527,6 @@
                         e.hp -= e.poisonLevel * 2; e.killedByNormal = true;
                         createParticles(e.x, e.y, '#bd00ff', 3);
                     }
-                    // 【新規：毒の可視化】毒状態の敵から禍々しいバブル粒子が立ち昇る
                     if (gameFrame % 4 === 0) {
                         particles.push({
                             x: e.x + (Math.random() - 0.5) * e.size * 1.2,
@@ -562,13 +559,12 @@
                 if (e.knockback > 0) { 
                     e.y -= isBoss ? 0.3 : 1.5; 
                     e.knockback--; 
-                    // 【新規：ノックバックの可視化】後退中のスピード線エフェクト
                     if (gameFrame % 2 === 0) {
                         particles.push({
                             x: e.x + (Math.random() - 0.5) * e.size,
                             y: e.y + e.size * 0.4,
                             vx: (Math.random() - 0.5) * 0.2,
-                            vy: Math.random() * 3 + 2, // 下向きへの風圧
+                            vy: Math.random() * 3 + 2, 
                             color: '#ffffff', alpha: 0.6, decay: 0.05, size: Math.random() * 1.5 + 1
                         });
                     }
@@ -700,7 +696,6 @@
                             e.killedByNormal = true;
                             if (player.normalKnockbackLevel > 0 && Math.random() < player.kbChance) {
                                 let kbRadius = player.normalKnockbackLevel * 70; createParticles(e.x, e.y, '#ffffff', 5);
-                                // 【新規：ノックバックの可視化】白い衝撃波サークルを登録
                                 blastCircles.push({ x: e.x, y: e.y, currentRadius: 0, maxRadius: kbRadius, alpha: 0.8, isKnockback: true });
                                 for (let other of enemies) {
                                     if(other.type === 'mid_boss' || other.type === 'final_boss') continue;
@@ -712,7 +707,6 @@
                             if (player.normalElectricLevel > 0 && Math.random() < player.elChance) {
                                 createParticles(e.x, e.y, '#ffff00', 8);
                                 let eleRadius = 80; 
-                                // 【新規：電撃の可視化】上空から直撃した敵への落雷線を追加
                                 lightningLines.push({ path: createLightningPath(e.x, 0, e.x, e.y), alpha: 1.0 });
                                 for (let other of enemies) {
                                     if (other === e) continue;
@@ -721,12 +715,14 @@
                                         other.hp -= player.normalElectricLevel * 2; 
                                         other.killedByNormal = true; 
                                         createParticles(other.x, other.y, '#ffff00', 3); 
-                                        // 【新規：電撃の可視化】直撃した敵から周囲の敵への連鎖線を追加
                                         lightningLines.push({ path: createLightningPath(e.x, e.y, other.x, other.y), alpha: 1.0 });
                                     }
                                 }
                             }
-                            if (player.normalFreezeLevel > 0 && Math.random() < player.frChance) { e.freezeTimer = player.normalFreezeLevel * 120; }
+                            // 【機能修正】ボス以外の場合のみ、確率で氷結タイマー（freezeTimer）を作動させる
+                            if (player.normalFreezeLevel > 0 && Math.random() < player.frChance && !isBoss) { 
+                                e.freezeTimer = player.normalFreezeLevel * 120; 
+                            }
                         } else { e.killedByNormal = false; }
 
                         createParticles(a.x, a.y, getEnemyColor(e.maxHp, e.type), a.isMax ? 10 : 4);
@@ -853,7 +849,6 @@
             ctx.beginPath(); ctx.moveTo(0, DEAD_LINE_Y); ctx.lineTo(V_WIDTH, DEAD_LINE_Y); ctx.stroke();
             ctx.shadowBlur = 0;
 
-            // 【機能変更】可視化用エフェクトサークル描画（通常爆発とKB衝撃波の切り替え）
             for (let c of blastCircles) {
                 ctx.save();
                 if (c.isKnockback) {
@@ -871,7 +866,6 @@
                 ctx.restore();
             }
 
-            // 【新規：電撃の可視化】稲妻のリアルタイム描画（2重パスでネオングローを表現）
             for (let lightning of lightningLines) {
                 ctx.save();
                 ctx.strokeStyle = `rgba(255, 255, 50, ${lightning.alpha})`;
@@ -883,7 +877,6 @@
                 }
                 ctx.stroke();
                 
-                // コア（中心の白い細線）
                 ctx.strokeStyle = `rgba(255, 255, 255, ${lightning.alpha})`;
                 ctx.lineWidth = 1.5; ctx.shadowBlur = 0;
                 ctx.stroke();
@@ -998,7 +991,6 @@
                 }
                 ctx.shadowBlur = 0;
 
-                // 【新規：氷結の可視化】敵を閉じ込めるサイバーアイスクリスタルを描画
                 if (e.freezeTimer > 0) {
                     ctx.save();
                     ctx.fillStyle = 'rgba(0, 240, 255, 0.25)';
@@ -1008,11 +1000,10 @@
                     let iceSize = e.size * 1.25;
                     for (let i = 0; i < 6; i++) {
                         let angle = (i * Math.PI / 3) + 0.2;
-                        let r = iceSize * (0.9 + (Math.sin(gameFrame * 0.05 + i) * 0.05)); // 僅かに揺らめく質感
+                        let r = iceSize * (0.9 + (Math.sin(gameFrame * 0.05 + i) * 0.05)); 
                         ctx.lineTo(Math.cos(angle) * r, Math.sin(angle) * r);
                     }
                     ctx.closePath(); ctx.fill(); ctx.stroke();
-                    // 内側のひび割れテクスチャ
                     ctx.beginPath();
                     ctx.moveTo(-iceSize*0.4, -iceSize*0.3); ctx.lineTo(iceSize*0.3, iceSize*0.4);
                     ctx.moveTo(iceSize*0.4, -iceSize*0.2); ctx.lineTo(-iceSize*0.2, iceSize*0.3);
