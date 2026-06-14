@@ -558,7 +558,7 @@
                             speed: 0.3, size: 32, seed: Math.random() * 100, knockback: 0, poisonTimer: 0, poisonLevel: 0, freezeTimer: 0, killedByNormal: false
                         });
                     } else if (bossToSpawn === 'final_boss') {
-                        let bHp = (level * 30 + 120) * hpMult * 1.5;
+                        let bHp = (level * 30 + 120) * hpMult * 1.2;
                         enemies.push({
                             type: 'final_boss', x: V_WIDTH / 2, y: -50, hp: bHp, maxHp: bHp,
                             speed: 0.2, size: 45, seed: Math.random() * 100, knockback: 0, poisonTimer: 0, poisonLevel: 0, freezeTimer: 0, killedByNormal: false
