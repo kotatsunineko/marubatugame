@@ -552,13 +552,13 @@
                 if (bossWarningTimer === 0 && bossToSpawn) {
                     let hpMult = remainingTime <= 300 ? 10 : 1;
                     if (bossToSpawn === 'mid_boss') {
-                        let bHp = (level * 15 + 40) * hpMult * 100;
+                        let bHp = (level * 15 + 40) * hpMult * 5;
                         enemies.push({
                             type: 'mid_boss', x: V_WIDTH / 2, y: -40, hp: bHp, maxHp: bHp,
                             speed: 0.3, size: 32, seed: Math.random() * 100, knockback: 0, poisonTimer: 0, poisonLevel: 0, freezeTimer: 0, killedByNormal: false
                         });
                     } else if (bossToSpawn === 'final_boss') {
-                        let bHp = (level * 30 + 120) * hpMult * 100;
+                        let bHp = (level * 30 + 120) * hpMult * 10;
                         enemies.push({
                             type: 'final_boss', x: V_WIDTH / 2, y: -50, hp: bHp, maxHp: bHp,
                             speed: 0.2, size: 45, seed: Math.random() * 100, knockback: 0, poisonTimer: 0, poisonLevel: 0, freezeTimer: 0, killedByNormal: false
@@ -571,7 +571,7 @@
             spawnTimer++;
             if (spawnTimer >= spawnInterval && bossWarningTimer === 0) {
                 spawnTimer = 0;
-                let hpMult = remainingTime <= 300 ? 10 : 1;
+                let hpMult = remainingTime <= 300 ? 1.5 : 1;
                 let rand = Math.random();
                 
                 if (level >= 2 && rand < 0.10) {
