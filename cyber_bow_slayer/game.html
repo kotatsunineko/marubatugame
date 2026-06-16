@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Cyber Bow Slayer v9.7 (Scroll Centered Edition)</title>
+    <title>Cyber Bow Slayer v9.7 (Absolute Compatibility)</title>
     <style>
         * {
             box-sizing: border-box;
@@ -12,32 +12,33 @@
             user-select: none;
             -webkit-user-select: none;
         }
-        /* ★修正：スクロール位置を制御するため、隠さずに自動(auto)にし、最小サイズを確保 */
+        /* ★追加：縮小してできた外側の余白を黒色にする */
+        html {
+            background-color: #000000;
+        }
         body {
             background-color: #05050a;
             font-family: 'Courier New', Courier, monospace, sans-serif;
-            overflow: auto; 
+            overflow: hidden;
             position: relative;
-            min-width: 100vw;
-            min-height: 100vh;
+            width: 100vw;
+            height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-        }
-        #game-container {
-            position: relative;
-            width: 80vw;   
-            height: 80vh;  
-            max-width: calc(80vh * 9 / 16);
-            max-height: calc(80vw * 16 / 9);
-            box-shadow: 0 0 35px rgba(0, 240, 255, 0.35);
-            border: 1px solid rgba(0, 240, 255, 0.1); 
+            /* ★修正：画面全体を二回り小さくして、中央に配置する */
+            transform: scale(0.8);
+            transform-origin: center center;
         }
         canvas {
             background: radial-gradient(circle at center, #101026 0%, #050511 100%);
+            box-shadow: 0 0 30px rgba(0, 240, 255, 0.3);
             touch-action: none;
-            width: 100%;
-            height: 100%;
+            /* ★修正：古いブラウザでも絶対に画面が潰れない確実なサイズ指定 */
+            width: 100vw;
+            height: 100vh;
+            max-width: calc(100vh * 9 / 16);
+            max-height: calc(100vw * 16 / 9);
         }
         #upgrade-screen {
             display: none;
@@ -157,30 +158,28 @@
 </head>
 <body>
 
-    <div id="game-container">
-        <canvas id="gameCanvas"></canvas>
+    <canvas id="gameCanvas"></canvas>
 
-        <div id="upgrade-screen">
-            <div class="upgrade-title">▲ SYSTEM UPGRADE ▲<br><span style="font-size:12px; color:#aaa;">[ SELECT 2 ITEMS ]</span></div>
-            <button class="upgrade-btn" id="opt0"></button>
-            <button class="upgrade-btn" id="opt1"></button>
-            <button class="upgrade-btn" id="opt2"></button>
-            <button class="upgrade-btn" id="opt3"></button>
-            <button class="upgrade-btn" id="opt4"></button>
-            <button id="apply-btn">APPLY (0/2)</button>
-        </div>
+    <div id="upgrade-screen">
+        <div class="upgrade-title">▲ SYSTEM UPGRADE ▲<br><span style="font-size:12px; color:#aaa;">[ SELECT 2 ITEMS ]</span></div>
+        <button class="upgrade-btn" id="opt0"></button>
+        <button class="upgrade-btn" id="opt1"></button>
+        <button class="upgrade-btn" id="opt2"></button>
+        <button class="upgrade-btn" id="opt3"></button>
+        <button class="upgrade-btn" id="opt4"></button>
+        <button id="apply-btn">APPLY (0/2)</button>
+    </div>
 
-        <div id="gameover-screen">
-            <h1 class="go-title">MISSION FAILED</h1>
-            <p id="final-score" style="font-size: 18px; color: #aaa; line-height: 1.6;">SCORE: 0</p>
-            <button class="restart-btn" onclick="resetGame()">REBOOT SYSTEM</button>
-        </div>
+    <div id="gameover-screen">
+        <h1 class="go-title">MISSION FAILED</h1>
+        <p id="final-score" style="font-size: 18px; color: #aaa; line-height: 1.6;">SCORE: 0</p>
+        <button class="restart-btn" onclick="resetGame()">REBOOT SYSTEM</button>
+    </div>
 
-        <div id="gameclear-screen">
-            <h1 class="gc-title">SYSTEM SECURED</h1>
-            <p id="clear-score" style="font-size: 18px; color: #aaa; line-height: 1.6;">SCORE: 0</p>
-            <button class="restart-btn" onclick="resetGame()">REBOOT SYSTEM</button>
-        </div>
+    <div id="gameclear-screen">
+        <h1 class="gc-title">SYSTEM SECURED</h1>
+        <p id="clear-score" style="font-size: 18px; color: #aaa; line-height: 1.6;">SCORE: 0</p>
+        <button class="restart-btn" onclick="resetGame()">REBOOT SYSTEM</button>
     </div>
 
     <script>
@@ -270,28 +269,30 @@
             { id: 'n_spread', text: () => `░ NORMAL SPREAD +1\n(通常弾同時放射数: ${player.normalSpread}WAY ➔ ${player.normalSpread + 1}WAY)`, action: () => { player.normalSpread += 1; } },
             { id: 'm_spread', text: () => `🔱 MAX OVER SPREAD +1\n(金弾同時放射数: ${player.maxSpread}WAY ➔ ${player.maxSpread + 1}WAY)`, action: () => { player.maxSpread += 1; } },
 
-            { id: 'n_kb', text: () => `💥 IMPACT WAVE +1\n(KB衝撃力: Lv${player.normalKnockbackLevel} ➔ Lv${player.normalKnockbackLevel + 1})`, action: () => { player.normalKnockbackLevel += 1; } },
+            { id: 'n_kb', text: () => `💥 IMPACT WAVE +1 (効果2倍!)\n(KB衝撃力: Lv${player.normalKnockbackLevel} ➔ Lv${player.normalKnockbackLevel + 1})`, action: () => { player.normalKnockbackLevel += 1; } },
             { id: 'kb_chance', text: () => `🔮 KB ACCELERATOR +20%\n(ノックバック発動率: ${Math.round(player.kbChance*100)}% ➔ ${Math.round((player.kbChance + 0.2)*100)}%)`, action: () => { player.kbChance += 0.2; } },
             
-            { id: 'n_ps', text: () => `🧪 BIO HAZARD +1\n(毒持続ダメージ: Lv${player.normalPoisonLevel} ➔ Lv${player.normalPoisonLevel + 1})`, action: () => { player.normalPoisonLevel += 1; } },
+            { id: 'n_ps', text: () => `🧪 BIO HAZARD +1 (効果2倍!)\n(毒持続ダメージ: Lv${player.normalPoisonLevel} ➔ Lv${player.normalPoisonLevel + 1})`, action: () => { player.normalPoisonLevel += 1; } },
             { id: 'ps_chance', text: () => `🔮 TOXIN CATALYST +20%\n(毒付与発動率: ${Math.round(player.psChance*100)}% ➔ ${Math.round((player.psChance + 0.2)*100)}%)`, action: () => { player.psChance += 0.2; } },
 
-            { id: 'n_el', text: () => `⚡ CHAIN LIGHTNING +1\n(連鎖電撃威力: Lv${player.normalElectricLevel} ➔ Lv${player.normalElectricLevel + 1})`, action: () => { player.normalElectricLevel += 1; } },
+            { id: 'n_el', text: () => `⚡ CHAIN LIGHTNING +1 (範囲雷撃)\n(連鎖電撃威力: Lv${player.normalElectricLevel} ➔ Lv${player.normalElectricLevel + 1})`, action: () => { player.normalElectricLevel += 1; } },
             { id: 'el_chance', text: () => `🔮 STORM GENERATOR +20%\n(電撃発生発動率: ${Math.round(player.elChance*100)}% ➔ ${Math.round((player.elChance + 0.2)*100)}%)`, action: () => { player.elChance += 0.2; } },
 
-            { id: 'n_fr', text: () => `❄️ CRYSTAL FREEZE +1\n(凍結持続時間: Lv${player.normalFreezeLevel} ➔ Lv${player.normalFreezeLevel + 1})`, action: () => { player.normalFreezeLevel += 1; } },
+            { id: 'n_fr', text: () => `❄️ CRYSTAL FREEZE +1 (効果2倍!)\n(凍結持続時間: Lv${player.normalFreezeLevel} ➔ Lv${player.normalFreezeLevel + 1})`, action: () => { player.normalFreezeLevel += 1; } },
             { id: 'fr_chance', text: () => `🔮 FROST MATRIX +20%\n(完全氷結発動率: ${Math.round(player.frChance*100)}% ➔ ${Math.round((player.frChance + 0.2)*100)}%)`, action: () => { player.frChance += 0.2; } },
             
             { id: 'n_xp', text: () => `📊 DATA HARVEST +1\n(通常撃破時ボーナスXP: +${player.normalXpBonus} ➔ +${player.normalXpBonus + 1})`, action: () => { player.normalXpBonus += 1; } },
 
-            { id: 'auto_exp', text: () => `💥 NITRO PULSE +1\n(自動爆発: Lv${player.autoExplosionLevel} ➔ Lv${player.autoExplosionLevel + 1})`, action: () => { player.autoExplosionLevel += 1; } }
+            { id: 'auto_exp', text: () => `💥 NITRO PULSE +1\n(自動爆発: Lv${player.autoExplosionLevel} ➔ Lv${player.autoExplosionLevel + 1})\n※通常弾威力依存の範囲爆発を定期発生`, action: () => { player.autoExplosionLevel += 1; } }
         ];
         let currentOptions = [];
         let selectedIndices = []; 
 
         function logStatusToConsole() {
             console.log(`%c=== WEAPON_SYS_INFO (PHASE ${level}) ===`, "color: #00f0ff; font-weight: bold;");
-            console.log(`SHOT_MATRIX >> BURST[${player.normalBurst}] ✕ SPREAD[${player.normalSpread}]`);
+            console.log(`SHOT_MATRIX >> BURST[${player.normalBurst}] ✕ SPREAD[${player.normalSpread}] (MAX: B[${player.maxBurst}]✕S[${player.maxSpread}])`);
+            console.log(`COOL_DOWN   >> NORMAL:[${player.normalCooldownMax}F] MAX_CHARGE:[${player.cooldownMax}F]`);
+            console.log(`STATUS_PROB >> KB:[${Math.round(player.kbChance*100)}%/Lv${player.normalKnockbackLevel}] PS:[${Math.round(player.psChance*100)}%/Lv${player.normalPoisonLevel}] EL:[${Math.round(player.elChance*100)}%/Lv${player.normalElectricLevel}] FR:[${Math.round(player.frChance*100)}%/Lv${player.normalFreezeLevel}]`);
             console.log(`----------------------------------------`);
         }
 
@@ -363,6 +364,7 @@
                 let damage = player.baseDamage + (isMax ? 3 : Math.floor(chargeValue / 40));
                 let size = isMax ? 14 : 6 + (chargeValue / 20);
                 let burstCount = isMax ? player.maxBurst : player.normalBurst;
+                /* ★修正：金弾のときに正しくmaxSpreadが適用されるように修正 */
                 let spreadCount = isMax ? player.maxSpread : player.normalSpread;
 
                 for (let b = 0; b < burstCount; b++) {
@@ -443,6 +445,7 @@
                 if (m.progress >= 1.0) {
                     let ex = m.targetX;
                     let ey = m.targetY;
+
                     blastCircles.push({ x: ex, y: ey, currentRadius: 0, maxRadius: m.radius, alpha: 1.0 });
 
                     for (let p = 0; p < 25; p++) {
@@ -456,6 +459,7 @@
                     }
 
                     for (let other of enemies) {
+                        /* ★修正：古いブラウザ互換性のための距離計算（**を排除） */
                         let mex = ex - other.x;
                         let mey = ey - other.y;
                         let d = Math.sqrt(mex * mex + mey * mey);
@@ -625,6 +629,7 @@
                 let e = enemies[i];
                 for (let j = arrows.length - 1; j >= 0; j--) {
                     let a = arrows[j];
+                    /* ★修正：古いブラウザ互換性のための距離計算（**を排除） */
                     let edx = e.x - a.x;
                     let edy = e.y - a.y;
                     let dist = Math.sqrt(edx * edx + edy * edy);
@@ -663,6 +668,7 @@
                                 let kbRadius = player.normalKnockbackLevel * 70; createParticles(e.x, e.y, '#ffffff', 5);
                                 for (let other of enemies) {
                                     if(other.type === 'mid_boss' || other.type === 'final_boss') continue;
+                                    /* ★修正：古いブラウザ互換性のための距離計算（**を排除） */
                                     let ekdx = e.x - other.x;
                                     let ekdy = e.y - other.y;
                                     let d = Math.sqrt(ekdx * ekdx + ekdy * ekdy);
@@ -675,6 +681,7 @@
                                 let eleRadius = 80; 
                                 for (let other of enemies) {
                                     if (other === e) continue;
+                                    /* ★修正：古いブラウザ互換性のための距離計算（**を排除） */
                                     let eedx = e.x - other.x;
                                     let eedy = e.y - other.y;
                                     let d = Math.sqrt(eedx * eedx + eedy * eedy);
@@ -868,6 +875,7 @@
                 ctx.beginPath();
                 ctx.arc(m.x, m.y, 6, 0, Math.PI * 2); 
                 ctx.fill();
+                
                 ctx.fillStyle = 'rgba(255, 100, 0, 0.4)';
                 ctx.beginPath();
                 ctx.moveTo(m.x, m.y);
@@ -918,9 +926,20 @@
                         ctx.beginPath(); ctx.moveTo(0, -e.size * 0.6); ctx.lineTo(e.size * 0.5, 0); ctx.lineTo(0, e.size * 0.6); ctx.lineTo(-e.size * 0.5, 0); ctx.closePath(); ctx.stroke(); ctx.strokeRect(-e.size*0.18, -e.size*0.18, e.size*0.36, e.size*0.36);
                     } else {
                         ctx.shadowColor = '#ffffff'; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2;
-                        ctx.beginPath(); ctx.arc(0, 0, e.size * 1.1, 0, Math.PI * 2); ctx.stroke();
-                        ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(0, 0, e.size * 0.4, 0, Math.PI * 2); fill();
-                        ctx.beginPath(); ctx.moveTo(-e.size * 0.8, 0); ctx.lineTo(e.size * 0.8, 0); ctx.moveTo(0, -e.size * 0.8); ctx.lineTo(0, e.size * 0.8); ctx.stroke();
+                        
+                        ctx.beginPath();
+                        ctx.arc(0, 0, e.size * 1.1, 0, Math.PI * 2);
+                        ctx.stroke();
+                        
+                        ctx.fillStyle = '#ffffff';
+                        ctx.beginPath();
+                        ctx.arc(0, 0, e.size * 0.4, 0, Math.PI * 2);
+                        ctx.fill();
+                        
+                        ctx.beginPath();
+                        ctx.moveTo(-e.size * 0.8, 0); ctx.lineTo(e.size * 0.8, 0);
+                        ctx.moveTo(0, -e.size * 0.8); ctx.lineTo(0, e.size * 0.8);
+                        ctx.stroke();
                     }
                 } else {
                     ctx.beginPath(); let spikes = 7; let rot = -Math.PI/2 + (e.freezeTimer > 0 ? 0 : gameFrame * 0.01) + e.seed; let step = Math.PI / spikes;
@@ -979,21 +998,6 @@
 
             if (bombFlashTimer > 0) { ctx.fillStyle = `rgba(255, 255, 255, ${bombFlashTimer / 15})`; ctx.fillRect(0, 0, V_WIDTH, V_HEIGHT); }
         }
-
-        // ★追加：ブラウザのスクロール位置を完全に「中央」へフォーカスさせる関数
-        function scrollToScreenCenter() {
-            const scrollX = (document.documentElement.scrollWidth - window.innerWidth) / 2;
-            const scrollY = (document.documentElement.scrollHeight - window.innerHeight) / 2;
-            window.scrollTo(scrollX, scrollY);
-        }
-
-        // ページ読み込み完了時、少し待ってから実行（ブラウザの自動位置復元への対策）
-        window.addEventListener('load', () => {
-            setTimeout(scrollToScreenCenter, 80);
-        });
-
-        // 画面の向きやサイズが変わった時も中央を維持
-        window.addEventListener('resize', scrollToScreenCenter);
 
         loadBestScore();
         gameLoop();
