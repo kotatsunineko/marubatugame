@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Cyber Bow Slayer v9.7 (Absolute Compatibility)</title>
+    <title>Cyber Bow Slayer v9.9 (Freeze Fixed)</title>
     <style>
         * {
             box-sizing: border-box;
@@ -12,7 +12,6 @@
             user-select: none;
             -webkit-user-select: none;
         }
-        /* ★追加：縮小してできた外側の余白を黒色にする */
         html {
             background-color: #000000;
         }
@@ -26,7 +25,6 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            /* ★修正：画面全体を二回り小さくして、中央に配置する */
             transform: scale(0.8);
             transform-origin: center center;
         }
@@ -34,7 +32,6 @@
             background: radial-gradient(circle at center, #101026 0%, #050511 100%);
             box-shadow: 0 0 30px rgba(0, 240, 255, 0.3);
             touch-action: none;
-            /* ★修正：古いブラウザでも絶対に画面が潰れない確実なサイズ指定 */
             width: 100vw;
             height: 100vh;
             max-width: calc(100vh * 9 / 16);
@@ -251,6 +248,7 @@
         let particles = [];
         let meteors = [];      
         let blastCircles = []; 
+        let lightningLines = []; 
         let spawnTimer = 0;
         let spawnInterval = 120;
         let bossWarningTimer = 0;
@@ -292,7 +290,7 @@
             console.log(`%c=== WEAPON_SYS_INFO (PHASE ${level}) ===`, "color: #00f0ff; font-weight: bold;");
             console.log(`SHOT_MATRIX >> BURST[${player.normalBurst}] ✕ SPREAD[${player.normalSpread}] (MAX: B[${player.maxBurst}]✕S[${player.maxSpread}])`);
             console.log(`COOL_DOWN   >> NORMAL:[${player.normalCooldownMax}F] MAX_CHARGE:[${player.cooldownMax}F]`);
-            console.log(`STATUS_PROB >> KB:[${Math.round(player.kbChance*100)}%/Lv${player.normalKnockbackLevel}] PS:[${Math.round(player.psChance*100)}%/Lv${player.normalPoisonLevel}] EL:[${Math.round(player.elChance*100)}%/Lv${player.normalElectricLevel}] FR:[${Math.round(player.frChance*100)}%/Lv${player.normalFreezeLevel}]`);
+            console.log(`STATUS_PROB >> KB:[${Math.round(player.kbChance*100)}%/Lv${player.normalKnockbackLevel}] PS:[${Math.round(player.psChance*100)}%/Lv${player.normalPoisonLevel}] EL:[${Math.round(player.elChance*100)}%/Lv${player.normalElectricLevel}] FR:[Math.round(player.frChance*100)}%/Lv${player.normalFreezeLevel}]`);
             console.log(`----------------------------------------`);
         }
 
@@ -364,7 +362,6 @@
                 let damage = player.baseDamage + (isMax ? 3 : Math.floor(chargeValue / 40));
                 let size = isMax ? 14 : 6 + (chargeValue / 20);
                 let burstCount = isMax ? player.maxBurst : player.normalBurst;
-                /* ★修正：金弾のときに正しくmaxSpreadが適用されるように修正 */
                 let spreadCount = isMax ? player.maxSpread : player.normalSpread;
 
                 for (let b = 0; b < burstCount; b++) {
@@ -385,6 +382,11 @@
         function update() {
             if (gameState !== 'playing') return;
             if (bombFlashTimer > 0) bombFlashTimer--;
+
+            for (let i = lightningLines.length - 1; i >= 0; i--) {
+                lightningLines[i].timer--;
+                if (lightningLines[i].timer <= 0) lightningLines.splice(i, 1);
+            }
 
             if (gameFrame % 60 === 0) {
                 remainingTime--;
@@ -446,7 +448,7 @@
                     let ex = m.targetX;
                     let ey = m.targetY;
 
-                    blastCircles.push({ x: ex, y: ey, currentRadius: 0, maxRadius: m.radius, alpha: 1.0 });
+                    blastCircles.push({ x: ex, y: ey, currentRadius: 0, maxRadius: m.radius, alpha: 1.0, color: 'rgba(255, 85, 0, ', shadow: '#ff5500' });
 
                     for (let p = 0; p < 25; p++) {
                         let ang = (p / 25) * Math.PI * 2;
@@ -459,7 +461,6 @@
                     }
 
                     for (let other of enemies) {
-                        /* ★修正：古いブラウザ互換性のための距離計算（**を排除） */
                         let mex = ex - other.x;
                         let mey = ey - other.y;
                         let d = Math.sqrt(mex * mex + mey * mey);
@@ -515,6 +516,15 @@
                     if (e.poisonTimer % 20 === 0) {
                         e.hp -= e.poisonLevel * 2; e.killedByNormal = true;
                         createParticles(e.x, e.y, '#bd00ff', 3);
+                    }
+                    if (Math.random() < 0.15) {
+                        particles.push({
+                            x: e.x + (Math.random() - 0.5) * e.size,
+                            y: e.y + (Math.random() - 0.5) * e.size,
+                            vx: (Math.random() - 0.5) * 0.4,
+                            vy: -Math.random() * 0.6 - 0.2,
+                            color: '#bd00ff', alpha: 0.7, decay: 0.04, size: Math.random() * 2 + 1
+                        });
                     }
                 }
                 if (e.freezeTimer > 0) e.freezeTimer--;
@@ -629,7 +639,6 @@
                 let e = enemies[i];
                 for (let j = arrows.length - 1; j >= 0; j--) {
                     let a = arrows[j];
-                    /* ★修正：古いブラウザ互換性のための距離計算（**を排除） */
                     let edx = e.x - a.x;
                     let edy = e.y - a.y;
                     let dist = Math.sqrt(edx * edx + edy * edy);
@@ -666,9 +675,9 @@
                             e.killedByNormal = true;
                             if (player.normalKnockbackLevel > 0 && Math.random() < player.kbChance) {
                                 let kbRadius = player.normalKnockbackLevel * 70; createParticles(e.x, e.y, '#ffffff', 5);
+                                blastCircles.push({ x: e.x, y: e.y, currentRadius: 0, maxRadius: kbRadius, alpha: 1.0, color: 'rgba(255, 255, 255, ', shadow: '#ffffff' });
                                 for (let other of enemies) {
                                     if(other.type === 'mid_boss' || other.type === 'final_boss') continue;
-                                    /* ★修正：古いブラウザ互換性のための距離計算（**を排除） */
                                     let ekdx = e.x - other.x;
                                     let ekdy = e.y - other.y;
                                     let d = Math.sqrt(ekdx * ekdx + ekdy * ekdy);
@@ -681,11 +690,15 @@
                                 let eleRadius = 80; 
                                 for (let other of enemies) {
                                     if (other === e) continue;
-                                    /* ★修正：古いブラウザ互換性のための距離計算（**を排除） */
                                     let eedx = e.x - other.x;
                                     let eedy = e.y - other.y;
                                     let d = Math.sqrt(eedx * eedx + eedy * eedy);
-                                    if (d < eleRadius) { other.hp -= player.normalElectricLevel * 2; other.killedByNormal = true; createParticles(other.x, other.y, '#ffff00', 3); }
+                                    if (d < eleRadius) { 
+                                        other.hp -= player.normalElectricLevel * 2; 
+                                        other.killedByNormal = true; 
+                                        createParticles(other.x, other.y, '#ffff00', 3); 
+                                        lightningLines.push({ fromX: e.x, fromY: e.y, toX: other.x, toY: other.y, timer: 12 });
+                                    }
                                 }
                             }
                             if (player.normalFreezeLevel > 0 && Math.random() < player.frChance) { e.freezeTimer = player.normalFreezeLevel * 120; }
@@ -699,8 +712,12 @@
                 }
             }
 
+            // ★修正：エラーで固まる原因（for...of内でspliceおよびiが未定義）だったループを、安全な逆順forループに全面修正
             for (let i = particles.length - 1; i >= 0; i--) {
-                let p = particles[i]; p.x += p.vx; p.y += p.vy; p.alpha -= p.decay;
+                let p = particles[i];
+                p.x += p.vx; 
+                p.y += p.vy; 
+                p.alpha -= p.decay;
                 if (p.alpha <= 0) particles.splice(i, 1);
             }
         }
@@ -793,7 +810,7 @@
             player.autoExplosionLevel = 0; player.autoExplosionTimer = 0;
             player.kbChance = 0.30; player.psChance = 0.30; player.elChance = 0.30; player.frChance = 0.30;
 
-            arrows = []; enemies = []; particles = []; meteors = []; blastCircles = [];
+            arrows = []; enemies = []; particles = []; meteors = []; blastCircles = []; lightningLines = []; 
             spawnInterval = 120; spawnTimer = 0; bossWarningTimer = 0;
             loadBestScore();
             document.getElementById('gameover-screen').style.display = 'none';
@@ -817,13 +834,33 @@
 
             for (let c of blastCircles) {
                 ctx.save();
-                ctx.strokeStyle = `rgba(255, 85, 0, ${c.alpha})`;
-                ctx.fillStyle = `rgba(255, 85, 0, ${c.alpha * 0.15})`;
-                ctx.lineWidth = 3;
-                ctx.shadowBlur = 10; ctx.shadowColor = '#ff5500';
+                let col = c.color || 'rgba(255, 85, 0, ';
+                let shd = c.shadow || '#ff5500';
+                ctx.strokeStyle = col + `${c.alpha})`;
+                ctx.fillStyle = col + `${c.alpha * 0.15})`;
+                ctx.lineWidth = 2;
+                ctx.shadowBlur = 10; ctx.shadowColor = shd;
                 ctx.beginPath();
                 ctx.arc(c.x, c.y, c.currentRadius, 0, Math.PI * 2);
                 ctx.fill(); ctx.stroke();
+                ctx.restore();
+            }
+
+            for (let line of lightningLines) {
+                ctx.save();
+                ctx.strokeStyle = '#ffff00';
+                ctx.lineWidth = 2;
+                ctx.shadowBlur = 8; ctx.shadowColor = '#ffff00';
+                ctx.beginPath();
+                ctx.moveTo(line.fromX, line.fromY);
+                let midX1 = (line.fromX * 0.6 + line.toX * 0.4) + (Math.random() - 0.5) * 16;
+                let midY1 = (line.fromY * 0.6 + line.toY * 0.4) + (Math.random() - 0.5) * 16;
+                let midX2 = (line.fromX * 0.3 + line.toX * 0.7) + (Math.random() - 0.5) * 16;
+                let midY2 = (line.fromY * 0.3 + line.toY * 0.7) + (Math.random() - 0.5) * 16;
+                ctx.lineTo(midX1, midY1);
+                ctx.lineTo(midX2, midY2);
+                ctx.lineTo(line.toX, line.toY);
+                ctx.stroke();
                 ctx.restore();
             }
 
@@ -870,6 +907,18 @@
 
             for (let m of meteors) {
                 ctx.save();
+                ctx.strokeStyle = 'rgba(255, 51, 0, ' + (0.3 + Math.sin(gameFrame * 0.15) * 0.1) + ')';
+                ctx.fillStyle = 'rgba(255, 51, 0, 0.04)';
+                ctx.lineWidth = 1.5;
+                ctx.setLineDash([4, 4]);
+                ctx.beginPath();
+                ctx.arc(m.targetX, m.targetY, m.radius, 0, Math.PI * 2);
+                ctx.fill(); ctx.stroke();
+                ctx.restore();
+            }
+
+            for (let m of meteors) {
+                ctx.save();
                 ctx.shadowBlur = 15; ctx.shadowColor = '#ff3300';
                 ctx.fillStyle = '#ff5522';
                 ctx.beginPath();
@@ -887,6 +936,29 @@
 
             for (let e of enemies) {
                 ctx.save(); ctx.translate(e.x, e.y);
+
+                if (e.poisonTimer > 0) {
+                    ctx.save();
+                    ctx.fillStyle = 'rgba(189, 0, 255, 0.12)';
+                    ctx.beginPath(); ctx.arc(0, 0, e.size * 1.3, 0, Math.PI * 2); ctx.fill();
+                    ctx.restore();
+                }
+
+                if (e.freezeTimer > 0) {
+                    ctx.save();
+                    ctx.strokeStyle = '#00ffff';
+                    ctx.fillStyle = 'rgba(0, 255, 255, 0.2)';
+                    ctx.lineWidth = 1.5;
+                    ctx.shadowBlur = 6; ctx.shadowColor = '#00ffff';
+                    ctx.beginPath();
+                    for (let i = 0; i < 6; i++) {
+                        let angle = i * Math.PI / 3;
+                        ctx.lineTo(Math.cos(angle) * (e.size * 1.25), Math.sin(angle) * (e.size * 1.25));
+                    }
+                    ctx.closePath(); ctx.fill(); ctx.stroke();
+                    ctx.restore();
+                }
+
                 let eColor = getEnemyColor(e.maxHp, e.type);
                 if (e.freezeTimer > 0) eColor = '#00ffff'; else if (e.poisonTimer > 0) eColor = '#bd00ff';
                 ctx.fillStyle = e.knockback > 0 ? '#ffffff' : '#100518'; ctx.strokeStyle = eColor;
@@ -926,20 +998,9 @@
                         ctx.beginPath(); ctx.moveTo(0, -e.size * 0.6); ctx.lineTo(e.size * 0.5, 0); ctx.lineTo(0, e.size * 0.6); ctx.lineTo(-e.size * 0.5, 0); ctx.closePath(); ctx.stroke(); ctx.strokeRect(-e.size*0.18, -e.size*0.18, e.size*0.36, e.size*0.36);
                     } else {
                         ctx.shadowColor = '#ffffff'; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2;
-                        
-                        ctx.beginPath();
-                        ctx.arc(0, 0, e.size * 1.1, 0, Math.PI * 2);
-                        ctx.stroke();
-                        
-                        ctx.fillStyle = '#ffffff';
-                        ctx.beginPath();
-                        ctx.arc(0, 0, e.size * 0.4, 0, Math.PI * 2);
-                        ctx.fill();
-                        
-                        ctx.beginPath();
-                        ctx.moveTo(-e.size * 0.8, 0); ctx.lineTo(e.size * 0.8, 0);
-                        ctx.moveTo(0, -e.size * 0.8); ctx.lineTo(0, e.size * 0.8);
-                        ctx.stroke();
+                        ctx.beginPath(); ctx.arc(0, 0, e.size * 1.1, 0, Math.PI * 2); ctx.stroke();
+                        ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(0, 0, e.size * 0.4, 0, Math.PI * 2); ctx.fill();
+                        ctx.beginPath(); ctx.moveTo(-e.size * 0.8, 0); ctx.lineTo(e.size * 0.8, 0); ctx.moveTo(0, -e.size * 0.8); ctx.lineTo(0, e.size * 0.8); ctx.stroke();
                     }
                 } else {
                     ctx.beginPath(); let spikes = 7; let rot = -Math.PI/2 + (e.freezeTimer > 0 ? 0 : gameFrame * 0.01) + e.seed; let step = Math.PI / spikes;
@@ -957,6 +1018,7 @@
                 ctx.restore();
             }
 
+            // ★修正：パーティクルの透明度フェード・描画処理
             for (let p of particles) { ctx.save(); ctx.globalAlpha = p.alpha; ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, p.size, p.size); ctx.restore(); }
             ctx.globalAlpha = 1.0;
 
