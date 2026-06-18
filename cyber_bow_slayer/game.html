@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Cyber Bow Slayer v9.9 (Freeze Fixed)</title>
+    <title>Cyber Bow Slayer v10.0 (Hardmode Enhanced)</title>
     <style>
         * {
             box-sizing: border-box;
@@ -290,7 +290,7 @@
             console.log(`%c=== WEAPON_SYS_INFO (PHASE ${level}) ===`, "color: #00f0ff; font-weight: bold;");
             console.log(`SHOT_MATRIX >> BURST[${player.normalBurst}] ✕ SPREAD[${player.normalSpread}] (MAX: B[${player.maxBurst}]✕S[${player.maxSpread}])`);
             console.log(`COOL_DOWN   >> NORMAL:[${player.normalCooldownMax}F] MAX_CHARGE:[${player.cooldownMax}F]`);
-            console.log(`STATUS_PROB >> KB:[${Math.round(player.kbChance*100)}%/Lv${player.normalKnockbackLevel}] PS:[${Math.round(player.psChance*100)}%/Lv${player.normalPoisonLevel}] EL:[${Math.round(player.elChance*100)}%/Lv${player.normalElectricLevel}] FR:[Math.round(player.frChance*100)}%/Lv${player.normalFreezeLevel}]`);
+            console.log(`STATUS_PROB >> KB:[${Math.round(player.kbChance*100)}%/Lv${player.normalKnockbackLevel}] PS:[${Math.round(player.psChance*100)}%/Lv${player.normalPoisonLevel}] EL:[${Math.round(player.elChance*100)}%/Lv${player.normalElectricLevel}] FR:[${Math.round(player.frChance*100)}%/Lv${player.normalFreezeLevel}]`);
             console.log(`----------------------------------------`);
         }
 
@@ -582,25 +582,46 @@
                 }
             }
 
+            // ★修正：敵の出現管理ロジック（5分経過後は通常敵を完全排除し、特殊敵のみをスポーン）
             spawnTimer++;
             if (spawnTimer >= spawnInterval && bossWarningTimer === 0) {
                 spawnTimer = 0;
                 let hpMult = remainingTime <= 300 ? 1.5 : 1;
-                let rand = Math.random();
                 
-                if (level >= 2 && rand < 0.10) {
+                let enemyType = 'normal';
+                let rand = Math.random();
+
+                if (remainingTime <= 300) {
+                    // 【5分経過後：HARD MODE】通常雑魚(normal)の出現率を0%にし、現在解放されている特殊敵から均等抽選
+                    let specialPool = [];
+                    if (level >= 2) specialPool.push('shield', 'neon_glitch');
+                    if (level >= 3) specialPool.push('composite_glitch', 'shell_core');
+                    if (specialPool.length === 0) specialPool.push('shield'); // セーフティ
+                    
+                    enemyType = specialPool[Math.floor(Math.random() * specialPool.length)];
+                } else {
+                    // 【5分未満：NORMAL MODE】従来通りの確率配分
+                    if (level >= 2 && rand < 0.10) enemyType = 'shield';
+                    else if (level >= 2 && rand >= 0.10 && rand < 0.20) enemyType = 'neon_glitch';
+                    else if (level >= 3 && rand >= 0.20 && rand < 0.32) enemyType = 'composite_glitch';
+                    else if (level >= 3 && rand >= 0.32 && rand < 0.44) enemyType = 'shell_core';
+                    else enemyType = 'normal';
+                }
+
+                // 決定されたタイプに応じて出現データを注入
+                if (enemyType === 'shield') {
                     let enemyHp = (Math.floor(Math.random() * level) + 1) * hpMult;
                     enemies.push({
                         type: 'shield', x: Math.random() * (V_WIDTH - 60) + 30, y: -30, hp: enemyHp,
                         maxHp: enemyHp, speed: 0.7, size: 18, seed: Math.random() * 100, knockback: 0, poisonTimer: 0, poisonLevel: 0, freezeTimer: 0, killedByNormal: false
                     });
-                } else if (level >= 2 && rand >= 0.10 && rand < 0.20) {
+                } else if (enemyType === 'neon_glitch') {
                     let enemyHp = (Math.floor(Math.random() * Math.min(level, 4)) + 1) * hpMult;
                     enemies.push({
                         type: 'neon_glitch', x: Math.random() * (V_WIDTH - 60) + 30, y: -30, hp: enemyHp,
                         maxHp: enemyHp, speed: 0.65, size: 16, seed: Math.random() * 100, knockback: 0, poisonTimer: 0, poisonLevel: 0, freezeTimer: 0, killedByNormal: false
                     });
-                } else if (level >= 3 && rand >= 0.20 && rand < 0.32) {
+                } else if (enemyType === 'composite_glitch') {
                     let enemyHp = Math.floor(Math.random() * Math.min(level, 3)) + 1;
                     let sHp = Math.floor(Math.random() * Math.min(level, 2)) + 1;
                     enemyHp *= hpMult; sHp *= hpMult; 
@@ -608,7 +629,7 @@
                         type: 'composite_glitch', x: Math.random() * (V_WIDTH - 60) + 30, y: -30, hp: enemyHp,
                         maxHp: enemyHp, shieldHp: sHp, maxShieldHp: sHp, speed: 0.5, size: 16, seed: Math.random() * 100, knockback: 0, poisonTimer: 0, poisonLevel: 0, freezeTimer: 0, killedByNormal: false
                     });
-                } else if (level >= 3 && rand >= 0.32 && rand < 0.44) {
+                } else if (enemyType === 'shell_core') {
                     let enemyHp = Math.floor(Math.random() * Math.min(level, 2)) + 1; 
                     let sHp = Math.floor(Math.random() * Math.min(level, 3)) + 1;     
                     enemyHp *= hpMult; sHp *= hpMult; 
@@ -617,6 +638,7 @@
                         maxHp: enemyHp, shellHp: sHp, maxShieldHp: sHp, speed: 0.45, size: 16, seed: Math.random() * 100, knockback: 0, poisonTimer: 0, poisonLevel: 0, freezeTimer: 0, killedByNormal: false
                     });
                 } else {
+                    // 通常エネミー（5分経過後はここを絶対に通りません）
                     let enemyHp = Math.floor(Math.random() * (level)) + 1;
                     let baseSize = Math.random() * 5 + 13 + (enemyHp * 2); 
                     let finalSpeed = Math.random() * 0.4 + 0.6 + (level * 0.05) - (enemyHp * 0.03);
@@ -712,7 +734,6 @@
                 }
             }
 
-            // ★修正：エラーで固まる原因（for...of内でspliceおよびiが未定義）だったループを、安全な逆順forループに全面修正
             for (let i = particles.length - 1; i >= 0; i--) {
                 let p = particles[i];
                 p.x += p.vx; 
@@ -947,7 +968,7 @@
                 if (e.freezeTimer > 0) {
                     ctx.save();
                     ctx.strokeStyle = '#00ffff';
-                    ctx.fillStyle = 'rgba(0, 255, 255, 0.2)';
+                    ctx.fillStyle = 'rgba(0, 255, 204, 0.2)';
                     ctx.lineWidth = 1.5;
                     ctx.shadowBlur = 6; ctx.shadowColor = '#00ffff';
                     ctx.beginPath();
@@ -995,7 +1016,7 @@
                         ctx.shadowColor = '#00ffcc'; ctx.strokeStyle = '#00ffcc'; ctx.lineWidth = 3; ctx.beginPath();
                         for (let i = 0; i < 6; i++) { let angle = i * Math.PI / 3 + (gameFrame * 0.01); ctx.lineTo(Math.cos(angle) * (e.size * 1.3), Math.sin(angle) * (e.size * 1.3)); }
                         ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5;
-                        ctx.beginPath(); ctx.moveTo(0, -e.size * 0.6); ctx.lineTo(e.size * 0.5, 0); ctx.lineTo(0, e.size * 0.6); ctx.lineTo(-e.size * 0.5, 0); ctx.closePath(); ctx.stroke(); ctx.strokeRect(-e.size*0.18, -e.size*0.18, e.size*0.36, e.size*0.36);
+                        ctx.beginPath(); moveTo(0, -e.size * 0.6); ctx.lineTo(e.size * 0.5, 0); ctx.lineTo(0, e.size * 0.6); ctx.lineTo(-e.size * 0.5, 0); ctx.closePath(); ctx.stroke(); ctx.strokeRect(-e.size*0.18, -e.size*0.18, e.size*0.36, e.size*0.36);
                     } else {
                         ctx.shadowColor = '#ffffff'; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2;
                         ctx.beginPath(); ctx.arc(0, 0, e.size * 1.1, 0, Math.PI * 2); ctx.stroke();
@@ -1018,7 +1039,6 @@
                 ctx.restore();
             }
 
-            // ★修正：パーティクルの透明度フェード・描画処理
             for (let p of particles) { ctx.save(); ctx.globalAlpha = p.alpha; ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, p.size, p.size); ctx.restore(); }
             ctx.globalAlpha = 1.0;
 
