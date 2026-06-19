@@ -37,66 +37,192 @@
             max-width: calc(100vh * 9 / 16);
             max-height: calc(100vw * 16 / 9);
         }
+        
+        /* === スキルツリー画面 UI === */
         #upgrade-screen {
             display: none;
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(5, 5, 15, 0.9);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
+            background: rgba(4, 4, 12, 0.96);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             flex-direction: column;
-            justify-content: center;
+            justify-content: flex-start;
             align-items: center;
             color: white;
             z-index: 10;
+            padding: 15px 10px;
         }
         .upgrade-title {
-            font-size: 20px;
-            font-weight: bold;
-            margin-bottom: 12px;
+            font-size: 18px;
+            font-weight: 900;
+            margin-bottom: 2px;
             color: #00ffcc;
-            text-shadow: 0 0 15px rgba(0, 255, 204, 0.6);
-            letter-spacing: 2px;
+            text-shadow: 0 0 15px rgba(0, 255, 204, 0.8);
+            letter-spacing: 3px;
             text-align: center;
         }
-        .upgrade-btn {
-            background: linear-gradient(135deg, #1a1a3a 0%, #0a0a1a 100%);
-            color: #fff;
-            border: 2px solid #00f0ff;
-            padding: 8px 12px;
-            margin: 5px;
-            width: 88%;
-            max-width: 340px;
-            border-radius: 12px;
-            font-size: 11px; 
+        .upgrade-sub {
+            font-size: 13px;
             font-weight: bold;
-            cursor: pointer;
-            box-shadow: 0 0 10px rgba(0, 240, 255, 0.1);
-            transition: all 0.2s;
+            color: #00ffcc;
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+            text-align: center;
+            text-shadow: 0 0 8px rgba(0, 255, 204, 0.4);
+        }
+
+        /* 新設: 詳細説明用パネル */
+        #skill-detail-box {
+            width: 95%;
+            max-width: 340px;
+            background: rgba(6, 6, 24, 0.85);
+            border: 1px solid #00ffcc;
+            border-radius: 10px;
+            padding: 8px 12px;
+            margin-bottom: 10px;
+            font-size: 10px;
+            color: #cdcdcd;
+            min-height: 52px;
             text-align: left;
-            white-space: pre-line; 
+            font-family: sans-serif;
+            line-height: 1.4;
+            box-shadow: inset 0 0 8px rgba(0, 255, 204, 0.15);
         }
+        
+        .upgrade-container {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            max-height: 54vh;
+            overflow-y: auto;
+            padding: 2px;
+        }
+
+        /* ツリー用セクションカテゴリ見出し */
+        .tree-category-title {
+            font-size: 11px;
+            font-weight: bold;
+            color: #ffd700;
+            background: rgba(255, 215, 0, 0.08);
+            padding: 4px 10px;
+            width: 95%;
+            max-width: 340px;
+            border-left: 3px solid #ffd700;
+            margin-top: 10px;
+            margin-bottom: 6px;
+            letter-spacing: 1.5px;
+        }
+
+        /* ツリー専用グリッドベース */
+        .tree-grid {
+            display: grid;
+            width: 95%;
+            max-width: 340px;
+            gap: 4px;
+            margin-bottom: 12px;
+            background: rgba(2, 2, 8, 0.5);
+            border: 1px solid rgba(0, 240, 255, 0.1);
+            border-radius: 8px;
+            padding: 6px;
+        }
+        .tree-grid.weapon-grid { grid-template-columns: repeat(5, 1fr); }
+        .tree-grid.defense-grid { grid-template-columns: repeat(3, 1fr); }
+        .tree-grid.elemental-grid { grid-template-columns: repeat(4, 1fr); }
+
+        /* コネクター線（矢印）の表現 */
+        .tree-connector {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #00f0ff;
+            font-size: 11px;
+            font-weight: bold;
+            opacity: 0.4;
+            font-family: monospace;
+        }
+        
+        /* スキルツリーの各ノード（ボタン） */
+        .upgrade-btn {
+            background: linear-gradient(135deg, rgba(20, 20, 45, 0.85) 0%, rgba(8, 8, 20, 0.95) 100%);
+            color: #fff;
+            border: 1px solid #00f0ff;
+            padding: 6px 2px;
+            border-radius: 6px;
+            cursor: pointer;
+            box-shadow: 0 0 5px rgba(0, 240, 255, 0.1);
+            transition: all 0.2s;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 2px;
+            width: 100%;
+            min-height: 42px;
+        }
+        .upgrade-btn .upgrade-name {
+            font-size: 8px;
+            font-weight: bold;
+            color: #00f0ff;
+            text-shadow: 0 0 3px rgba(0, 240, 255, 0.5);
+            text-align: center;
+            width: 100%;
+        }
+        .upgrade-btn .upgrade-status {
+            font-size: 8px;
+            color: #00ffcc;
+            opacity: 0.9;
+        }
+
+        /* 選択中のハイライト効果 */
+        .upgrade-btn.selected {
+            border-color: #ffd700;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
+            background: rgba(30, 25, 10, 0.85);
+        }
+
+        /* ロック状態（前提スキル未達成） */
+        .upgrade-btn.locked {
+            opacity: 0.25;
+            border-color: #441122;
+            background: rgba(15, 5, 10, 0.8);
+            cursor: help;
+        }
+        .upgrade-btn.locked .upgrade-name {
+            color: #884455;
+            text-shadow: none;
+        }
+        .upgrade-btn.locked .upgrade-status {
+            color: #663344;
+        }
+
+        /* SP不足の時 */
+        .upgrade-btn.insufficient-sp {
+            border-color: #005577;
+            opacity: 0.8;
+        }
+
         .upgrade-btn:active {
-            transform: scale(0.98);
+            transform: scale(0.96);
         }
+
+        /* 決定（ゲームに戻る）ボタン */
         #apply-btn {
-            background: #00ffcc;
+            background: linear-gradient(90deg, #00ffcc, #00f0ff);
             color: #000;
             border: none;
-            padding: 10px 30px;
-            margin-top: 15px;
-            font-size: 14px;
+            padding: 10px 45px;
+            margin-top: 12px;
+            font-size: 13px;
             font-weight: bold;
-            border-radius: 20px;
+            border-radius: 25px;
             cursor: pointer;
+            letter-spacing: 1.5px;
             box-shadow: 0 0 15px rgba(0, 255, 204, 0.4);
-            transition: 0.2s;
-            opacity: 0.3; 
-            pointer-events: none; 
-        }
-        #apply-btn.active {
-            opacity: 1;
-            pointer-events: auto;
+            transition: all 0.2s;
         }
         #apply-btn:active { transform: scale(0.95); }
 
@@ -158,13 +284,16 @@
     <canvas id="gameCanvas"></canvas>
 
     <div id="upgrade-screen">
-        <div class="upgrade-title">▲ SYSTEM UPGRADE ▲<br><span style="font-size:12px; color:#aaa;">[ SELECT 2 ITEMS ]</span></div>
-        <button class="upgrade-btn" id="opt0"></button>
-        <button class="upgrade-btn" id="opt1"></button>
-        <button class="upgrade-btn" id="opt2"></button>
-        <button class="upgrade-btn" id="opt3"></button>
-        <button class="upgrade-btn" id="opt4"></button>
-        <button id="apply-btn">APPLY (0/2)</button>
+        <div class="upgrade-title">▲ SKILL MATRIX TREE ▲</div>
+        <div class="upgrade-sub" id="upgrade-sp-hud">[ AVAILABLE SP: 0 ]</div>
+        
+        <!-- 追加: スキル詳細情報表示用パネル -->
+        <div id="skill-detail-box">強化したいノードを選択してください。</div>
+        
+        <div class="upgrade-container" id="skill-tree-container">
+            <!-- JS側でツリー構造を動的ビルド -->
+        </div>
+        <button id="apply-btn">RESUME SYSTEM</button>
     </div>
 
     <div id="gameover-screen">
@@ -233,7 +362,9 @@
             kbChance: 0.30,
             psChance: 0.30,
             elChance: 0.30,
-            frChance: 0.30
+            frChance: 0.30,
+
+            skillPoints: 0 
         };
 
         const DEAD_LINE_Y = V_HEIGHT - 120;
@@ -253,38 +384,61 @@
         let spawnInterval = 120;
         let bossWarningTimer = 0;
 
-        const UPGRADE_POOL = [
-            { id: 'dmg', text: () => `⚡ PULSE DAMAGE +1\n(ベース威力: ${player.baseDamage} ➔ ${player.baseDamage + 1})`, action: () => { player.baseDamage += 1; } },
-            { id: 'chg', text: () => `⏱️ OVERCHARGE +40%\n(チャージ速度: ${Math.round(player.chargeSpeed*100)}% ➔ ${Math.round((player.chargeSpeed + 0.4)*100)}%)`, action: () => { player.chargeSpeed += 0.4; } },
-            { id: 'n_cooldown', text: () => `⏱️ RAPID FREQUENCY\n(通常弾インターバル: ${player.normalCooldownMax}F ➔ ${Math.max(0, player.normalCooldownMax - 6)}F)`, action: () => { player.normalCooldownMax = Math.max(0, player.normalCooldownMax - 6); } },
-            { id: 'pierce', text: () => `🏹 MAX CHARGE PIERCE +1\n(金弾の追加貫通数: ${player.pierceBonus} ➔ ${player.pierceBonus + 1})`, action: () => { player.pierceBonus += 1; } },
-            { id: 'heal', text: () => `💖 NANO REPAIR +1\n(コア耐久値: ${player.life}/${player.maxLife} ➔ ${Math.min(player.maxLife, player.life + 1)}/${player.maxLife})`, action: () => { player.life = Math.min(player.maxLife, player.life + 1); } },
-            { id: 'spd', text: () => `🚀 HYPER VELOCITY\n(弾速・射程: ${player.arrowSpeed} ➔ ${player.arrowSpeed + 2.5})`, action: () => { player.arrowSpeed += 2.5; } },
-            { id: 'maxlife', text: () => `🛡️ MATRIX SHIELD +1\n(耐久上限: ${player.maxLife} ➔ ${player.maxLife + 1})`, action: () => { player.maxLife += 1; player.life += 1; } },
-            
-            { id: 'n_burst', text: () => `🔫 NORMAL BURST +1\n(通常弾連射数: ${player.normalBurst}発 ➔ ${player.normalBurst + 1}発)`, action: () => { player.normalBurst += 1; } },
-            { id: 'm_burst', text: () => `👑 MAX OVER BURST +1\n(金弾連射数: ${player.maxBurst}発 ➔ ${player.maxBurst + 1}発)`, action: () => { player.maxBurst += 1; } },
-            { id: 'n_spread', text: () => `░ NORMAL SPREAD +1\n(通常弾同時放射数: ${player.normalSpread}WAY ➔ ${player.normalSpread + 1}WAY)`, action: () => { player.normalSpread += 1; } },
-            { id: 'm_spread', text: () => `🔱 MAX OVER SPREAD +1\n(金弾同時放射数: ${player.maxSpread}WAY ➔ ${player.maxSpread + 1}WAY)`, action: () => { player.maxSpread += 1; } },
+        let selectedSkillId = null; // 現在ツリー画面で選択・ハイライトされているスキルID
 
-            { id: 'n_kb', text: () => `💥 IMPACT WAVE +1 (効果2倍!)\n(KB衝撃力: Lv${player.normalKnockbackLevel} ➔ Lv${player.normalKnockbackLevel + 1})`, action: () => { player.normalKnockbackLevel += 1; } },
-            { id: 'kb_chance', text: () => `🔮 KB ACCELERATOR +20%\n(ノックバック発動率: ${Math.round(player.kbChance*100)}% ➔ ${Math.round((player.kbChance + 0.2)*100)}%)`, action: () => { player.kbChance += 0.2; } },
-            
-            { id: 'n_ps', text: () => `🧪 BIO HAZARD +1 (効果2倍!)\n(毒持続ダメージ: Lv${player.normalPoisonLevel} ➔ Lv${player.normalPoisonLevel + 1})`, action: () => { player.normalPoisonLevel += 1; } },
-            { id: 'ps_chance', text: () => `🔮 TOXIN CATALYST +20%\n(毒付与発動率: ${Math.round(player.psChance*100)}% ➔ ${Math.round((player.psChance + 0.2)*100)}%)`, action: () => { player.psChance += 0.2; } },
+        // 🌳 2次元ツリーマップデータ構造 (アイテム性能・前提ロジックはそのまま維持)
+        const SKILL_TREE = [
+            // --- ⚔️ WEAPON SYSTEM (攻撃系・5列構造) ---
+            { id: 'dmg', category: '⚔️ WEAPON SYSTEM', short: '⚡PULSE', grid: { r: 1, c: 3, span: 1 }, status: () => `Lv.${player.baseDamage}`, text: () => `⚡ PULSE DAMAGE +1\n(ベース威力: ${player.baseDamage} ➔ ${player.baseDamage + 1})`, action: () => { player.baseDamage += 1; }, isAvailable: () => true },
+            { id: 'chg', category: '⚔️ WEAPON SYSTEM', short: '⏱️CHARGE', grid: { r: 3, c: 1, span: 2 }, status: () => `${Math.round(player.chargeSpeed*100)}%`, text: () => `⏱️ OVERCHARGE +40%\n(チャージ速度: ${Math.round(player.chargeSpeed*100)}% ➔ ${Math.round((player.chargeSpeed + 0.4)*100)}%)`, action: () => { player.chargeSpeed += 0.4; }, isAvailable: () => player.baseDamage > 1, reqText: "PULSE DAMAGE Lv2以上" },
+            { id: 'n_cooldown', category: '⚔️ WEAPON SYSTEM', short: '⏱️RAPID', grid: { r: 3, c: 4, span: 2 }, status: () => `${player.normalCooldownMax}F`, text: () => `⏱️ RAPID FREQUENCY\n(通常弾インターバル: ${player.normalCooldownMax}F ➔ ${Math.max(0, player.normalCooldownMax - 6)}F)`, action: () => { player.normalCooldownMax = Math.max(0, player.normalCooldownMax - 6); }, isAvailable: () => player.baseDamage > 1, reqText: "PULSE DAMAGE Lv2以上" },
+            { id: 'pierce', category: '⚔️ WEAPON SYSTEM', short: '🏹PIERCE', grid: { r: 5, c: 1, span: 2 }, status: () => `+${player.pierceBonus}`, text: () => `🏹 MAX CHARGE PIERCE +1\n(金弾の追加貫通数: ${player.pierceBonus} ➔ ${player.pierceBonus + 1})`, action: () => { player.pierceBonus += 1; }, isAvailable: () => player.chargeSpeed > 1, reqText: "OVERCHARGE 習得" },
+            { id: 'n_burst', category: '⚔️ WEAPON SYSTEM', short: '🔫BURST', grid: { r: 5, c: 4, span: 1 }, status: () => `${player.normalBurst}発`, text: () => `🔫 NORMAL BURST +1\n(通常弾連射数: ${player.normalBurst}発 ➔ ${player.normalBurst + 1}発)`, action: () => { player.normalBurst += 1; }, isAvailable: () => player.normalCooldownMax < 30, reqText: "RAPID FREQUENCY 習得" },
+            { id: 'n_spread', category: '⚔️ WEAPON SYSTEM', short: '░SPREAD', grid: { r: 5, c: 5, span: 1 }, status: () => `${player.normalSpread}WAY`, text: () => `░ NORMAL SPREAD +1\n(通常弾同時放射数: ${player.normalSpread}WAY ➔ ${player.normalSpread + 1}WAY)`, action: () => { player.normalSpread += 1; }, isAvailable: () => player.normalCooldownMax < 30, reqText: "RAPID FREQUENCY 習得" },
+            { id: 'm_burst', category: '⚔️ WEAPON SYSTEM', short: '👑M-BURST', grid: { r: 7, c: 1, span: 1 }, status: () => `${player.maxBurst}発`, text: () => `👑 MAX OVER BURST +1\n(金弾連射数: ${player.maxBurst}発 ➔ ${player.maxBurst + 1}発)`, action: () => { player.maxBurst += 1; }, isAvailable: () => player.pierceBonus > 0, reqText: "MAX CHARGE PIERCE 習得" },
+            { id: 'm_spread', category: '⚔️ WEAPON SYSTEM', short: '🔱M-SPREAD', grid: { r: 7, c: 2, span: 1 }, status: () => `${player.maxSpread}WAY`, text: () => `🔱 MAX OVER SPREAD +1\n(金弾同時放射数: ${player.maxSpread}WAY ➔ ${player.maxSpread + 1}WAY)`, action: () => { player.maxSpread += 1; }, isAvailable: () => player.pierceBonus > 0, reqText: "MAX CHARGE PIERCE 習得" },
 
-            { id: 'n_el', text: () => `⚡ CHAIN LIGHTNING +1 (範囲雷撃)\n(連鎖電撃威力: Lv${player.normalElectricLevel} ➔ Lv${player.normalElectricLevel + 1})`, action: () => { player.normalElectricLevel += 1; } },
-            { id: 'el_chance', text: () => `🔮 STORM GENERATOR +20%\n(電撃発生発動率: ${Math.round(player.elChance*100)}% ➔ ${Math.round((player.elChance + 0.2)*100)}%)`, action: () => { player.elChance += 0.2; } },
+            // --- 🛡️ DEFENSE & UTILITY (防御・補助系・3列構造) ---
+            { id: 'maxlife', category: '🛡️ DEFENSE & UTILITY', short: '🛡️SHIELD', grid: { r: 1, c: 2, span: 1 }, status: () => `MAX:${player.maxLife}`, text: () => `🛡️ MATRIX SHIELD +1\n(耐久上限: ${player.maxLife} ➔ ${player.maxLife + 1})`, action: () => { player.maxLife += 1; player.life += 1; }, isAvailable: () => true },
+            { id: 'heal', category: '🛡️ DEFENSE & UTILITY', short: '💖REPAIR', grid: { r: 3, c: 1, span: 1 }, status: () => `${player.life}/${player.maxLife}`, text: () => `💖 NANO REPAIR +1\n(コア耐久値: ${player.life}/${player.maxLife} ➔ ${Math.min(player.maxLife, player.life + 1)}/${player.maxLife})`, action: () => { player.life = Math.min(player.maxLife, player.life + 1); }, isAvailable: () => player.maxLife > 3, reqText: "MATRIX SHIELD 習得" },
+            { id: 'spd', category: '🛡️ DEFENSE & UTILITY', short: '🚀VELOCITY', grid: { r: 3, c: 2, span: 1 }, status: () => `SPD:${player.arrowSpeed}`, text: () => `🚀 HYPER VELOCITY\n(弾速・射程: ${player.arrowSpeed} ➔ ${player.arrowSpeed + 2.5})`, action: () => { player.arrowSpeed += 2.5; }, isAvailable: () => player.maxLife > 3, reqText: "MATRIX SHIELD 習得" },
+            { id: 'n_xp', category: '🛡️ DEFENSE & UTILITY', short: '📊HARVEST', grid: { r: 3, c: 3, span: 1 }, status: () => `+${player.normalXpBonus}`, text: () => `📊 DATA HARVEST +1\n(通常撃破時ボーナスXP: +${player.normalXpBonus} ➔ +${player.normalXpBonus + 1})`, action: () => { player.normalXpBonus += 1; }, isAvailable: () => player.maxLife > 3, reqText: "MATRIX SHIELD 習得" },
+            { id: 'auto_exp', category: '🛡️ DEFENSE & UTILITY', short: '💥NITRO', grid: { r: 5, c: 3, span: 1 }, status: () => `Lv.${player.autoExplosionLevel}`, text: () => `💥 NITRO PULSE +1\n(自動爆発: Lv${player.autoExplosionLevel} ➔ Lv${player.autoExplosionLevel + 1})\n※通常弾威力依存の範囲爆発を定期発生`, action: () => { player.autoExplosionLevel += 1; }, isAvailable: () => player.normalXpBonus > 0, reqText: "DATA HARVEST 習得" },
 
-            { id: 'n_fr', text: () => `❄️ CRYSTAL FREEZE +1 (効果2倍!)\n(凍結持続時間: Lv${player.normalFreezeLevel} ➔ Lv${player.normalFreezeLevel + 1})`, action: () => { player.normalFreezeLevel += 1; } },
-            { id: 'fr_chance', text: () => `🔮 FROST MATRIX +20%\n(完全氷結発動率: ${Math.round(player.frChance*100)}% ➔ ${Math.round((player.frChance + 0.2)*100)}%)`, action: () => { player.frChance += 0.2; } },
-            
-            { id: 'n_xp', text: () => `📊 DATA HARVEST +1\n(通常撃破時ボーナスXP: +${player.normalXpBonus} ➔ +${player.normalXpBonus + 1})`, action: () => { player.normalXpBonus += 1; } },
-
-            { id: 'auto_exp', text: () => `💥 NITRO PULSE +1\n(自動爆発: Lv${player.autoExplosionLevel} ➔ Lv${player.autoExplosionLevel + 1})\n※通常弾威力依存の範囲爆発を定期発生`, action: () => { player.autoExplosionLevel += 1; } }
+            // --- 🔮 ELEMENTAL SYSTEM (特殊属性系・4列構造) ---
+            { id: 'n_kb', category: '🔮 ELEMENTAL SYSTEM', short: '💥IMPACT', grid: { r: 1, c: 1, span: 1 }, status: () => `Lv.${player.normalKnockbackLevel}`, text: () => `💥 IMPACT WAVE +1 (効果2倍!)\n(KB衝撃力: Lv${player.normalKnockbackLevel} ➔ Lv${player.normalKnockbackLevel + 1})`, action: () => { player.normalKnockbackLevel += 1; }, isAvailable: () => player.baseDamage > 1, reqText: "PULSE DAMAGE Lv2以上" },
+            { id: 'kb_chance', category: '🔮 ELEMENTAL SYSTEM', short: '🔮KB-PROB', grid: { r: 3, c: 1, span: 1 }, status: () => `${Math.round(player.kbChance*100)}%`, text: () => `🔮 KB ACCELERATOR +20%\n(ノックバック発動率: ${Math.round(player.kbChance*100)}% ➔ ${Math.round((player.kbChance + 0.2)*100)}%)`, action: () => { player.kbChance += 0.2; }, isAvailable: () => player.normalKnockbackLevel > 0, reqText: "IMPACT WAVE 習得" },
+            { id: 'n_ps', category: '🔮 ELEMENTAL SYSTEM', short: '🧪BIO-HZ', grid: { r: 1, c: 2, span: 1 }, status: () => `Lv.${player.normalPoisonLevel}`, text: () => `🧪 BIO HAZARD +1 (効果2倍!)\n(毒持続ダメージ: Lv${player.normalPoisonLevel} ➔ Lv${player.normalPoisonLevel + 1})`, action: () => { player.normalPoisonLevel += 1; }, isAvailable: () => player.baseDamage > 1, reqText: "PULSE DAMAGE Lv2以上" },
+            { id: 'ps_chance', category: '🔮 ELEMENTAL SYSTEM', short: '🔮PS-PROB', grid: { r: 3, c: 2, span: 1 }, status: () => `${Math.round(player.psChance*100)}%`, text: () => `🔮 TOXIN CATALYST +20%\n(毒付与発動率: ${Math.round(player.psChance*100)}% ➔ ${Math.round((player.psChance + 0.2)*100)}%)`, action: () => { player.psChance += 0.2; }, isAvailable: () => player.normalPoisonLevel > 0, reqText: "BIO HAZARD 習得" },
+            { id: 'n_el', category: '🔮 ELEMENTAL SYSTEM', short: '⚡LIGHTNG', grid: { r: 1, c: 3, span: 1 }, status: () => `Lv.${player.normalElectricLevel}`, text: () => `⚡ CHAIN LIGHTNING +1 (範囲雷撃)\n(連鎖電撃威力: Lv${player.normalElectricLevel} ➔ Lv${player.normalElectricLevel + 1})`, action: () => { player.normalElectricLevel += 1; }, isAvailable: () => player.baseDamage > 1, reqText: "PULSE DAMAGE Lv2以上" },
+            { id: 'el_chance', category: '🔮 ELEMENTAL SYSTEM', short: '🔮EL-PROB', grid: { r: 3, c: 3, span: 1 }, status: () => `${Math.round(player.elChance*100)}%`, text: () => `🔮 STORM GENERATOR +20%\n(電撃発生発動率: ${Math.round(player.elChance*100)}% ➔ ${Math.round((player.elChance + 0.2)*100)}%)`, action: () => { player.elChance += 0.2; }, isAvailable: () => player.normalElectricLevel > 0, reqText: "CHAIN LIGHTNING 習得" },
+            { id: 'n_fr', category: '🔮 ELEMENTAL SYSTEM', short: '❄️FREEZE', grid: { r: 1, c: 4, span: 1 }, status: () => `Lv.${player.normalFreezeLevel}`, text: () => `❄️ CRYSTAL FREEZE +1 (効果2倍!)\n(凍結持続時間: Lv${player.normalFreezeLevel} ➔ Lv${player.normalFreezeLevel + 1})`, action: () => { player.normalFreezeLevel += 1; }, isAvailable: () => player.baseDamage > 1, reqText: "PULSE DAMAGE Lv2以上" },
+            { id: 'fr_chance', category: '🔮 ELEMENTAL SYSTEM', short: '🔮FR-PROB', grid: { r: 3, c: 4, span: 1 }, status: () => `${Math.round(player.frChance*100)}%`, text: () => `🔮 FROST MATRIX +20%\n(完全氷結発動率: ${Math.round(player.frChance*100)}% ➔ ${Math.round((player.frChance + 0.2)*100)}%)`, action: () => { player.frChance += 0.2; }, isAvailable: () => player.normalFreezeLevel > 0, reqText: "CRYSTAL FREEZE 習得" }
         ];
-        let currentOptions = [];
-        let selectedIndices = []; 
+
+        // 🗺️ ツリーのノード間を繋ぐ矢印コネクター定義
+        const TREE_CONNECTORS = [
+            // WEAPON
+            { cat: '⚔️ WEAPON SYSTEM', r: 2, c: 2, span: 1, txt: '↙' },
+            { cat: '⚔️ WEAPON SYSTEM', r: 2, c: 4, span: 1, txt: '↘' },
+            { cat: '⚔️ WEAPON SYSTEM', r: 4, c: 1, span: 2, txt: '⬇' },
+            { cat: '⚔️ WEAPON SYSTEM', r: 4, c: 4, span: 1, txt: '⬇' },
+            { cat: '⚔️ WEAPON SYSTEM', r: 4, c: 5, span: 1, txt: '⬇' },
+            { cat: '⚔️ WEAPON SYSTEM', r: 6, c: 1, span: 1, txt: '⬇' },
+            { cat: '⚔️ WEAPON SYSTEM', r: 6, c: 2, span: 1, txt: '⬇' },
+
+            // DEFENSE
+            { cat: '🛡️ DEFENSE & UTILITY', r: 2, c: 1, span: 1, txt: '↙' },
+            { cat: '🛡️ DEFENSE & UTILITY', r: 2, c: 2, span: 1, txt: '⬇' },
+            { cat: '🛡️ DEFENSE & UTILITY', r: 2, c: 3, span: 1, txt: '↘' },
+            { cat: '🛡️ DEFENSE & UTILITY', r: 4, c: 3, span: 1, txt: '⬇' },
+
+            // ELEMENTAL
+            { cat: '🔮 ELEMENTAL SYSTEM', r: 2, c: 1, span: 1, txt: '⬇' },
+            { cat: '🔮 ELEMENTAL SYSTEM', r: 2, c: 2, span: 1, txt: '⬇' },
+            { cat: '🔮 ELEMENTAL SYSTEM', r: 2, c: 3, span: 1, txt: '⬇' },
+            { cat: '🔮 ELEMENTAL SYSTEM', r: 2, c: 4, span: 1, txt: '⬇' },
+        ];
 
         function logStatusToConsole() {
             console.log(`%c=== WEAPON_SYS_INFO (PHASE ${level}) ===`, "color: #00f0ff; font-weight: bold;");
@@ -582,7 +736,6 @@
                 }
             }
 
-            // ★修正：敵の出現管理ロジック（5分経過後は通常敵を完全排除し、特殊敵のみをスポーン）
             spawnTimer++;
             if (spawnTimer >= spawnInterval && bossWarningTimer === 0) {
                 spawnTimer = 0;
@@ -592,15 +745,13 @@
                 let rand = Math.random();
 
                 if (remainingTime <= 300) {
-                    // 【5分経過後：HARD MODE】通常雑魚(normal)の出現率を0%にし、現在解放されている特殊敵から均等抽選
                     let specialPool = [];
                     if (level >= 2) specialPool.push('shield', 'neon_glitch');
                     if (level >= 3) specialPool.push('composite_glitch', 'shell_core');
-                    if (specialPool.length === 0) specialPool.push('shield'); // セーフティ
+                    if (specialPool.length === 0) specialPool.push('shield'); 
                     
                     enemyType = specialPool[Math.floor(Math.random() * specialPool.length)];
                 } else {
-                    // 【5分未満：NORMAL MODE】従来通りの確率配分
                     if (level >= 2 && rand < 0.10) enemyType = 'shield';
                     else if (level >= 2 && rand >= 0.10 && rand < 0.20) enemyType = 'neon_glitch';
                     else if (level >= 3 && rand >= 0.20 && rand < 0.32) enemyType = 'composite_glitch';
@@ -608,7 +759,6 @@
                     else enemyType = 'normal';
                 }
 
-                // 決定されたタイプに応じて出現データを注入
                 if (enemyType === 'shield') {
                     let enemyHp = (Math.floor(Math.random() * level) + 1) * hpMult;
                     enemies.push({
@@ -638,7 +788,6 @@
                         maxHp: enemyHp, shellHp: sHp, maxShieldHp: sHp, speed: 0.45, size: 16, seed: Math.random() * 100, knockback: 0, poisonTimer: 0, poisonLevel: 0, freezeTimer: 0, killedByNormal: false
                     });
                 } else {
-                    // 通常エネミー（5分経過後はここを絶対に通りません）
                     let enemyHp = Math.floor(Math.random() * (level)) + 1;
                     let baseSize = Math.random() * 5 + 13 + (enemyHp * 2); 
                     let finalSpeed = Math.random() * 0.4 + 0.6 + (level * 0.05) - (enemyHp * 0.03);
@@ -762,52 +911,110 @@
         }
 
         function triggerLevelUp() {
-            gameState = 'levelup'; isDragging = false; chargeValue = 0; selectedIndices = []; 
-            let availablePool = UPGRADE_POOL.filter(item => {
-                if (item.id === 'kb_chance' && player.normalKnockbackLevel === 0) return false;
-                if (item.id === 'ps_chance' && player.normalPoisonLevel === 0) return false;
-                if (item.id === 'el_chance' && player.normalElectricLevel === 0) return false;
-                if (item.id === 'fr_chance' && player.normalFreezeLevel === 0) return false;
-                return true;
-            });
-            let shuffled = [...availablePool].sort(() => 0.5 - Math.random());
-            currentOptions = shuffled.slice(0, 5);
+            gameState = 'levelup'; isDragging = false; chargeValue = 0;
+            player.skillPoints += 2; 
+            
             document.getElementById('upgrade-screen').style.display = 'flex';
             updateUpgradeUI();
 
             const applyBtn = document.getElementById('apply-btn');
             applyBtn.onclick = () => {
-                if (selectedIndices.length === 2) {
-                    selectedIndices.forEach(idx => currentOptions[idx].action());
-                    document.getElementById('upgrade-screen').style.display = 'none';
-                    gameState = 'playing';
-                    logStatusToConsole(); 
-                }
+                document.getElementById('upgrade-screen').style.display = 'none';
+                gameState = 'playing';
+                logStatusToConsole();
             };
         }
 
+        // 🌳 スキルツリー画面 動的レンダリングロジック
         function updateUpgradeUI() {
-            const applyBtn = document.getElementById('apply-btn');
-            applyBtn.innerText = `APPLY (${selectedIndices.length}/2)`;
-            if (selectedIndices.length === 2) applyBtn.classList.add('active'); else applyBtn.classList.remove('active');
+            const container = document.getElementById('skill-tree-container');
+            const spHud = document.getElementById('upgrade-sp-hud');
+            const detailBox = document.getElementById('skill-detail-box');
+            
+            spHud.innerText = `[ AVAILABLE SP: ${player.skillPoints} ]`;
+            if (player.skillPoints > 0) spHud.style.color = "#00ffcc"; else spHud.style.color = "#666";
 
-            for (let i = 0; i < 5; i++) {
-                const btn = document.getElementById(`opt${i}`);
-                btn.innerText = currentOptions[i].text();
-                if (selectedIndices.includes(i)) {
-                    btn.style.background = '#00ffcc'; btn.style.color = '#000'; btn.disabled = false;
-                } else {
-                    btn.style.background = ''; btn.style.color = '';
-                    if (selectedIndices.length >= 2) { btn.disabled = true; btn.style.opacity = '0.4'; } 
-                    else { btn.disabled = false; btn.style.opacity = '1'; }
+            // 選択ノードに基づく上部詳細ボックスの更新テキスト
+            if (selectedSkillId) {
+                const currentSkill = SKILL_TREE.find(s => s.id === selectedSkillId);
+                if (currentSkill) {
+                    let desc = currentSkill.text().replace('\n', '<br>');
+                    if (!currentSkill.isAvailable()) {
+                        desc += `<br><span style="color: #ff3355; font-weight: bold;">[🔒 LOCKED: ${currentSkill.reqText}]</span>`;
+                    }
+                    detailBox.innerHTML = desc;
                 }
-                btn.onclick = () => {
-                    const foundIndex = selectedIndices.indexOf(i);
-                    if (foundIndex > -1) selectedIndices.splice(foundIndex, 1);
-                    else if (selectedIndices.length < 2) selectedIndices.push(i);
-                    updateUpgradeUI();
-                };
+            } else {
+                detailBox.innerHTML = "ノードを選択（タップ）して詳細を同期してください。<br>条件クリアかつSPがあれば、もう一度押して習得します。";
             }
+
+            container.innerHTML = '';
+            const categories = ['⚔️ WEAPON SYSTEM', '🛡️ DEFENSE & UTILITY', '🔮 ELEMENTAL SYSTEM'];
+
+            categories.forEach((category) => {
+                // カテゴリ見出し
+                const catTitle = document.createElement('div');
+                catTitle.className = 'tree-category-title';
+                catTitle.innerText = category;
+                container.appendChild(catTitle);
+
+                // 各ツリーのグリッドコンテナ作成
+                const gridDiv = document.createElement('div');
+                gridDiv.className = 'tree-grid';
+                if (category === '⚔️ WEAPON SYSTEM') gridDiv.classList.add('weapon-grid');
+                else if (category === '🛡️ DEFENSE & UTILITY') gridDiv.classList.add('defense-grid');
+                else if (category === '🔮 ELEMENTAL SYSTEM') gridDiv.classList.add('elemental-grid');
+
+                // 1. コネクター（矢印）をグリッドに敷く
+                TREE_CONNECTORS.filter(c => c.cat === category).forEach((conn) => {
+                    const connEl = document.createElement('div');
+                    connEl.className = 'tree-connector';
+                    connEl.style.gridRow = conn.r;
+                    connEl.style.gridColumn = `${conn.c} / span ${conn.span}`;
+                    connEl.innerText = conn.txt;
+                    gridDiv.appendChild(connEl);
+                });
+
+                // 2. スキルノード（ボタン）を配置
+                SKILL_TREE.filter(s => s.category === category).forEach((skill) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'upgrade-btn';
+                    btn.style.gridRow = skill.grid.r;
+                    btn.style.gridColumn = `${skill.grid.c} / span ${skill.grid.span}`;
+
+                    const available = skill.isAvailable();
+                    const hasSp = player.skillPoints > 0;
+
+                    if (!available) {
+                        btn.classList.add('locked');
+                    } else if (!hasSp) {
+                        btn.classList.add('insufficient-sp');
+                    }
+
+                    if (selectedSkillId === skill.id) {
+                        btn.classList.add('selected');
+                    }
+
+                    btn.innerHTML = `<div class="upgrade-name">${skill.short}</div><div class="upgrade-status">${skill.status()}</div>`;
+
+                    btn.onclick = () => {
+                        if (selectedSkillId === skill.id && available && hasSp) {
+                            // 既に選択中のノードをもう一度押したらSPを消費して購入確定
+                            player.skillPoints--;
+                            skill.action();
+                            updateUpgradeUI();
+                        } else {
+                            // 初回タップ時は詳細表示の同期とハイライト
+                            selectedSkillId = skill.id;
+                            updateUpgradeUI();
+                        }
+                    };
+
+                    gridDiv.appendChild(btn);
+                });
+
+                container.appendChild(gridDiv);
+            });
         }
 
         function endGame(status) {
@@ -830,6 +1037,8 @@
             player.normalKnockbackLevel = 0; player.normalPoisonLevel = 0; player.normalElectricLevel = 0; player.normalFreezeLevel = 0; player.normalXpBonus = 0;
             player.autoExplosionLevel = 0; player.autoExplosionTimer = 0;
             player.kbChance = 0.30; player.psChance = 0.30; player.elChance = 0.30; player.frChance = 0.30;
+            player.skillPoints = 0; 
+            selectedSkillId = null; 
 
             arrows = []; enemies = []; particles = []; meteors = []; blastCircles = []; lightningLines = []; 
             spawnInterval = 120; spawnTimer = 0; bossWarningTimer = 0;
