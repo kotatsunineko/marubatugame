@@ -38,8 +38,7 @@
             max-height: calc(100vw * 16 / 9);
         }
         
-        /* === スキルツリー画面 UI === */
-        /* === スキルツリー画面 UI ( game2.html スタイル統合 ) === */
+/* === スキルツリー画面 UI === */
         #upgrade-screen {
             display: none;
             position: absolute;
@@ -64,7 +63,7 @@
             text-align: center;
         }
         .upgrade-sub {
-            font-size: 13px;
+            font-size: 20px;
             font-weight: bold;
             color: #00ffcc;
             letter-spacing: 2px;
@@ -109,40 +108,46 @@
             z-index: 2;
         }
 
-        /* 円形スキルノード */
+       /* 🔍 <style> タグ内にある .skill-node を以下のように修正 */
         .skill-node {
             position: absolute;
-            width: 76px;
-            height: 76px;
-            background: linear-gradient(135deg, rgba(16, 16, 40, 0.9) 0%, rgba(6, 6, 18, 0.95) 100%);
-            border: 1px solid #00f0ff;
+            width: 120px;
+            height: 120px;
             border-radius: 50%;
+            background: #111122;
+            border: 2px solid #444466;
+            color: #8888aa;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
+            text-align: center;
             cursor: pointer;
-            box-shadow: 0 0 8px rgba(0, 240, 255, 0.15);
-            transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
-            z-index: 3;
-            padding: 4px;
-            font-family: sans-serif;
+            transition: all 0.2s;
+            z-index: 2;
+            
+            /* 🛠️ 文字サイズと配置の調整（ここを変更・追加） */
+            font-size: 30px;         /* 12px等から15px〜16pxに大きく変更 */
+            font-weight: bold;       /* 文字を太字にして視認性を向上 */
+            line-height: 1.3;        /* 行間を詰めて円内に収まりやすく */
+            white-space: pre-line;   /* 改行を有効化 */
+            padding: 5px;            /* 円の端に文字がくっつかないように内側余白 */
         }
         .skill-node:active {
             transform: scale(0.95);
         }
         .skill-node .node-name {
-            font-size: 8px;
+            font-size: 20px;    /* 8px から 13px にさらに拡大 */
             font-weight: bold;
             color: #00f0ff;
             text-align: center;
-            line-height: 1.1;
-            margin-bottom: 2px;
+            line-height: 1.2;
+            margin-bottom: 4px;
             text-shadow: 0 0 3px rgba(0, 240, 255, 0.4);
             word-break: break-all;
         }
         .skill-node .node-status {
-            font-size: 8px;
+            font-size: 20px;    /* 8px から 13px にさらに拡大 */
             color: #00ffcc;
             font-weight: bold;
         }
@@ -220,10 +225,10 @@
             box-shadow: 0 0 25px rgba(0, 240, 255, 0.35);
             font-family: sans-serif;
         }
-        #dialog-skill-cat { font-size: 10px; color: #ffd700; margin-bottom: 4px; letter-spacing: 1px; }
+        #dialog-skill-cat { font-size: 18px; color: #ffd700; margin-bottom: 4px; letter-spacing: 1px; }
         #dialog-skill-name { font-size: 16px; font-weight: bold; color: #00f0ff; margin-bottom: 2px; }
-        #dialog-skill-status { font-size: 12px; color: #00ffcc; margin-bottom: 10px; }
-        #dialog-skill-desc { font-size: 11px; color: #cccccc; text-align: left; line-height: 1.4; white-space: pre-wrap; background: rgba(0,0,0,0.3); padding: 8px; border-radius: 6px; }
+        #dialog-skill-status { font-size: 16px; color: #00ffcc; margin-bottom: 10px; }
+        #dialog-skill-desc { font-size: 16px; color: #cccccc; text-align: left; line-height: 1.4; white-space: pre-wrap; background: rgba(0,0,0,0.3); padding: 8px; border-radius: 6px; }
         
         .dialog-buttons { display: flex; justify-content: space-between; gap: 10px; margin-top: 15px; }
         .dialog-buttons button {
@@ -313,7 +318,7 @@
             <div id="dialog-skill-req" style="color: #ff3366; margin-top: 5px; font-weight: bold; font-size: 11px;"></div>
             <div class="dialog-buttons">
                 <button id="dialog-cancel-btn">CANCEL</button>
-                <button id="dialog-confirm-btn">LEARN</button>
+                <button id="dialog-confirm-btn">UPGRADE</button>
             </div>
         </div>
     </div>
@@ -408,64 +413,45 @@
 
         let selectedSkillId = null; // 現在ツリー画面で選択・ハイライトされているスキルID
 
-        // 🌳 中央のコアから周囲に広がる放射状スキルツリーデータ（状態異常条件緩和版）
+        // 🌳 2次元接続スキル構造マップデータ（重なり完全解消版）
+        const node_base_point_x = 150;
+        const node_base_point_y = 450;
         const SKILL_TREE = [
-            // --- 🌐 CENTER CORE (共通の中心核) ---
-            { id: 'core', category: '🌐 MAIN SYSTEM', short: '🌐CORE', x: 962, y: 962, status: () => 'ONLINE', text: () => '🌐 SYSTEM MAIN CORE\nすべての拡張マトリクスの起点となる中心核。\n※このノードはアップグレードできません。', action: () => {}, isAvailable: () => true },
-
-            // --- ⚔️ WEAPON SYSTEM (攻撃系：左側へ展開) ---
-            { id: 'dmg', parentId: 'core', category: '⚔️ WEAPON SYSTEM', short: '⚡PULSE', x: 782, y: 962, status: () => `Lv.${player.baseDamage}`, text: () => `⚡ PULSE DAMAGE +1\n(ベース威力: ${player.baseDamage} ➔ ${player.baseDamage + 1})`, action: () => { player.baseDamage += 1; }, isAvailable: () => true },
-            { id: 'chg', parentId: 'dmg', category: '⚔️ WEAPON SYSTEM', short: '⏱️CHARGE', x: 632, y: 1082, status: () => `${Math.round(player.chargeSpeed*100)}%`, text: () => `⏱️ OVERCHARGE +40%\n(チャージ速度: ${Math.round(player.chargeSpeed*100)}% ➔ ${Math.round((player.chargeSpeed + 0.4)*100)}%)`, action: () => { player.chargeSpeed += 0.4; }, isAvailable: () => player.baseDamage > 1, reqText: "PULSE DAMAGE Lv2以上" },
-            { id: 'n_cooldown', parentId: 'dmg', category: '⚔️ WEAPON SYSTEM', short: '⏱️RAPID', x: 632, y: 842, status: () => `${player.normalCooldownMax}F`, text: () => `⏱️ RAPID FREQUENCY\n(通常弾インターバル: ${player.normalCooldownMax}F ➔ ${Math.max(0, player.normalCooldownMax - 6)}F)`, action: () => { player.normalCooldownMax = Math.max(0, player.normalCooldownMax - 6); }, isAvailable: () => player.baseDamage > 1, reqText: "PULSE DAMAGE Lv2以上" },
-            { id: 'pierce', parentId: 'chg', category: '⚔️ WEAPON SYSTEM', short: '🏹PIERCE', x: 482, y: 1182, status: () => `+${player.pierceBonus}`, text: () => `🏹 MAX CHARGE PIERCE +1\n(金弾の追加貫通数: ${player.pierceBonus} ➔ ${player.pierceBonus + 1})`, action: () => { player.pierceBonus += 1; }, isAvailable: () => player.chargeSpeed > 1, reqText: "OVERCHARGE 習得" },
-            { id: 'n_burst', parentId: 'n_cooldown', category: '⚔️ WEAPON SYSTEM', short: '🔫BURST', x: 482, y: 722, status: () => `${player.normalBurst}発`, text: () => `🔫 NORMAL BURST +1\n(通常弾連射数: ${player.normalBurst}発 ➔ ${player.normalBurst + 1}発)`, action: () => { player.normalBurst += 1; }, isAvailable: () => player.normalCooldownMax < 30, reqText: "RAPID FREQUENCY 習得" },
-            { id: 'n_spread', parentId: 'n_cooldown', category: '⚔️ WEAPON SYSTEM', short: '░SPREAD', x: 482, y: 842, status: () => `${player.normalSpread}WAY`, text: () => `░ NORMAL SPREAD +1\n(通常弾同時放射数: ${player.normalSpread}WAY ➔ ${player.normalSpread + 1}WAY)`, action: () => { player.normalSpread += 1; }, isAvailable: () => player.normalCooldownMax < 30, reqText: "RAPID FREQUENCY 習得" },
-            { id: 'm_burst', parentId: 'pierce', category: '⚔️ WEAPON SYSTEM', short: '👑M-BURST', x: 332, y: 1132, status: () => `${player.maxBurst}発`, text: () => `👑 MAX OVER BURST +1\n(金弾連射数: ${player.maxBurst}発 ➔ ${player.maxBurst + 1}発)`, action: () => { player.maxBurst += 1; }, isAvailable: () => player.pierceBonus > 0, reqText: "MAX CHARGE PIERCE 習得" },
-            { id: 'm_spread', parentId: 'pierce', category: '⚔️ WEAPON SYSTEM', short: '🔱M-SPREAD', x: 332, y: 1252, status: () => `${player.maxSpread}WAY`, text: () => `🔱 MAX OVER SPREAD +1\n(金弾同時放射数: ${player.maxSpread}WAY ➔ ${player.maxSpread + 1}WAY)`, action: () => { player.maxSpread += 1; }, isAvailable: () => player.pierceBonus > 0, reqText: "MAX CHARGE PIERCE 習得" },
-
-            // --- 🛡️ DEFENSE & UTILITY (防御・補助系：右側へ展開) ---
-            { id: 'maxlife', parentId: 'core', category: '🛡️ DEFENSE & UTILITY', short: '🛡️SHIELD', x: 1142, y: 962, status: () => `MAX:${player.maxLife}`, text: () => `🛡️ MATRIX SHIELD +1\n(耐久上限: ${player.maxLife} ➔ ${player.maxLife + 1})`, action: () => { player.maxLife += 1; player.life += 1; }, isAvailable: () => true },
-            { id: 'heal', parentId: 'maxlife', category: '🛡️ DEFENSE & UTILITY', short: '💖REPAIR', x: 1292, y: 842, status: () => `${player.life}/${player.maxLife}`, text: () => `💖 NANO REPAIR +1\n(コア耐久値: ${player.life}/${player.maxLife} ➔ ${Math.min(player.maxLife, player.life + 1)}/${player.maxLife})`, action: () => { player.life = Math.min(player.maxLife, player.life + 1); }, isAvailable: () => player.maxLife > 3, reqText: "MATRIX SHIELD 習得" },
-            { id: 'spd', parentId: 'maxlife', category: '🛡️ DEFENSE & UTILITY', short: '🚀VELOCITY', x: 1342, y: 962, status: () => `SPD:${player.arrowSpeed}`, text: () => `🚀 HYPER VELOCITY\n(弾速・射程: ${player.arrowSpeed} ➔ ${player.arrowSpeed + 2.5})`, action: () => { player.arrowSpeed += 2.5; }, isAvailable: () => player.maxLife > 3, reqText: "MATRIX SHIELD 習得" },
-            { id: 'n_xp', parentId: 'maxlife', category: '🛡️ DEFENSE & UTILITY', short: '📊HARVEST', x: 1292, y: 1082, status: () => `+${player.normalXpBonus}`, text: () => `📊 DATA HARVEST +1\n(通常撃破時ボーナスXP: +${player.normalXpBonus} ➔ +${player.normalXpBonus + 1})`, action: () => { player.normalXpBonus += 1; }, isAvailable: () => player.maxLife > 3, reqText: "MATRIX SHIELD 習得" },
-            { id: 'auto_exp', parentId: 'n_xp', category: '🛡️ DEFENSE & UTILITY', short: '💥NITRO', x: 1442, y: 1182, status: () => `Lv.${player.autoExplosionLevel}`, text: () => `💥 NITRO PULSE +1\n(自動爆発: Lv${player.autoExplosionLevel} ➔ Lv${player.autoExplosionLevel + 1})\n※通常弾威力依存の範囲爆発を定期発生`, action: () => { player.autoExplosionLevel += 1; }, isAvailable: () => player.normalXpBonus > 0, reqText: "DATA HARVEST 習得" },
-
-            // --- 🔮 ELEMENTAL SYSTEM (特殊属性系：上側へ扇状に展開・初期から解放可能) ---
-            { id: 'n_kb', parentId: 'core', category: '🔮 ELEMENTAL SYSTEM', short: '💥IMPACT', x: 842, y: 812, status: () => `Lv.${player.normalKnockbackLevel}`, text: () => `💥 IMPACT WAVE +1 \n(通常弾にノックバック効果付与: Lv${player.normalKnockbackLevel} ➔ Lv${player.normalKnockbackLevel + 1})`, action: () => { player.normalKnockbackLevel += 1; }, isAvailable: () => true },
-            { id: 'kb_chance', parentId: 'n_kb', category: '🔮 ELEMENTAL SYSTEM', short: '🔮KB-PROB', x: 742, y: 662, status: () => `${Math.round(player.kbChance*100)}%`, text: () => `🔮 KB ACCELERATOR +20%\n(ノックバック発動率: ${Math.round(player.kbChance*100)}% ➔ ${Math.round((player.kbChance + 0.2)*100)}%)`, action: () => { player.kbChance += 0.2; }, isAvailable: () => player.normalKnockbackLevel > 0, reqText: "IMPACT WAVE 習得" },
+            { id: 'core', category: 'CORE', short: '🌌 CORE\nMATRIX', x: 800+node_base_point_x, y: 500+node_base_point_y, status: () => 'ACTIVE', text: () => '中央コアシステム。各セクターへの拡張が可能です。', isAvailable: () => true },
             
-            { id: 'n_ps', parentId: 'core', category: '🔮 ELEMENTAL SYSTEM', short: '🧪BIO-HZ', x: 922, y: 772, status: () => `Lv.${player.normalPoisonLevel}`, text: () => `🧪 BIO HAZARD +1 \n(通常弾に毒効果付与: Lv${player.normalPoisonLevel} ➔ Lv${player.normalPoisonLevel + 1})`, action: () => { player.normalPoisonLevel += 1; }, isAvailable: () => true },
-            { id: 'ps_chance', parentId: 'n_ps', category: '🔮 ELEMENTAL SYSTEM', short: '🧪PS-PROB', x: 882, y: 612, status: () => `${Math.round(player.psChance*100)}%`, text: () => `🧪 BIO ACCELERATOR +20%\n(毒発動率: ${Math.round(player.psChance*100)}% ➔ ${Math.round((player.psChance + 0.2)*100)}%)`, action: () => { player.psChance += 0.2; }, isAvailable: () => player.normalPoisonLevel > 0, reqText: "BIO HAZARD 習得" },
+            // --- ⚔️ WEAPON SYSTEM (上セクターへ綺麗に扇状展開) ---
+            { id: 'dmg', parentId: 'core', category: '⚔️ WEAPON SYSTEM', short: '⚡PULSE', x: 800+node_base_point_x, y: 320+node_base_point_y, status: () => `Lv.${player.baseDamage}`, text: () => `⚡ PULSE DAMAGE +1\n(ベース威力: ${player.baseDamage} ➔ ${player.baseDamage + 1})`, action: () => { player.baseDamage += 1; }, isAvailable: () => true },
+            { id: 'chg', parentId: 'dmg', category: '⚔️ WEAPON SYSTEM', short: '⏱️CHARGE', x: 640+node_base_point_x, y: 200+node_base_point_y, status: () => `${Math.round(player.chargeSpeed*100)}%`, text: () => `⏱️ OVERCHARGE +40%\n(チャージ速度: ${Math.round(player.chargeSpeed*100)}% ➔ ${Math.round((player.chargeSpeed + 0.4)*100)}%)`, action: () => { player.chargeSpeed += 0.4; }, isAvailable: () => player.baseDamage > 1, reqText: "PULSE DAMAGE Lv2以上" },
+            { id: 'n_cooldown', parentId: 'dmg', category: '⚔️ WEAPON SYSTEM', short: '⏱️RAPID', x: 960+node_base_point_x, y: 200+node_base_point_y, status: () => `${player.normalCooldownMax}F`, text: () => `⏱️ RAPID FREQUENCY\n(通常弾間隔: ${player.normalCooldownMax}F ➔ ${Math.max(0, player.normalCooldownMax - 6)}F)`, action: () => { player.normalCooldownMax = Math.max(0, player.normalCooldownMax - 6); }, isAvailable: () => player.baseDamage > 1, reqText: "PULSE DAMAGE Lv2以上" },
+            { id: 'pierce', parentId: 'chg', category: '⚔️ WEAPON SYSTEM', short: '🏹PIERCE', x: 480+node_base_point_x, y: 80+node_base_point_y, status: () => `+${player.pierceBonus}`, text: () => `🏹 MAX CHARGE PIERCE +1\n(金弾追加貫通数: ${player.pierceBonus} ➔ ${player.pierceBonus + 1})`, action: () => { player.pierceBonus += 1; }, isAvailable: () => player.chargeSpeed > 1, reqText: "OVERCHARGE 習得" },
+            { id: 'n_burst', parentId: 'n_cooldown', category: '⚔️ WEAPON SYSTEM', short: '🔫BURST', x: 960+node_base_point_x, y: 40+node_base_point_y, status: () => `${player.normalBurst}発`, text: () => `🔫 NORMAL BURST +1\n(通常弾連射数: ${player.normalBurst}発 ➔ ${player.normalBurst + 1}発)`, action: () => { player.normalBurst += 1; }, isAvailable: () => player.normalCooldownMax < 30, reqText: "RAPID FREQUENCY 習得" },
+            { id: 'n_spread', parentId: 'n_cooldown', category: '⚔️ WEAPON SYSTEM', short: '░SPREAD', x: 1120+node_base_point_x, y: 80+node_base_point_y, status: () => `${player.normalSpread}WAY`, text: () => `░ NORMAL SPREAD +1\n(通常弾同時放射: ${player.normalSpread}WAY ➔ ${player.normalSpread + 1}WAY)`, action: () => { player.normalSpread += 1; }, isAvailable: () => player.normalCooldownMax < 30, reqText: "RAPID FREQUENCY 習得" },
+            { id: 'm_burst', parentId: 'pierce', category: '⚔️ WEAPON SYSTEM', short: '👑M-BURST', x: 320+node_base_point_x, y: -20+node_base_point_y, status: () => `${player.maxBurst}発`, text: () => `👑 MAX OVER BURST +1\n(金弾連射数: ${player.maxBurst}発 ➔ ${player.maxBurst + 1}発)`, action: () => { player.maxBurst += 1; }, isAvailable: () => player.pierceBonus > 0, reqText: "MAX CHARGE PIERCE 習得" },
+            { id: 'm_spread', parentId: 'pierce', category: '⚔️ WEAPON SYSTEM', short: '🔱M-SPREAD', x: 480+node_base_point_x, y: -70+node_base_point_y, status: () => `${player.maxSpread}WAY`, text: () => `🔱 MAX OVER SPREAD +1\n(金弾同時放射: ${player.maxSpread}WAY ➔ ${player.maxSpread + 1}WAY)`, action: () => { player.maxSpread += 1; }, isAvailable: () => player.pierceBonus > 0, reqText: "MAX CHARGE PIERCE 習得" },
+
+            // --- 🛡️ DEFENSE & UTILITY (右下セクターへ広く均等展開) ---
+            { id: 'maxlife', parentId: 'core', category: '🛡️ DEFENSE & UTILITY', short: '🛡️SHIELD', x: 980+node_base_point_x, y: 580+node_base_point_y, status: () => `MAX:${player.maxLife}`, text: () => `🛡️ MATRIX SHIELD +1\n(耐久上限: ${player.maxLife} ➔ ${player.maxLife + 1})`, action: () => { player.maxLife += 1; player.life += 1; }, isAvailable: () => true },
+            { id: 'heal', parentId: 'maxlife', category: '🛡️ DEFENSE & UTILITY', short: '💖REPAIR', x: 1160+node_base_point_x, y: 500+node_base_point_y, status: () => `${player.life}/${player.maxLife}`, text: () => `💖 NANO REPAIR +1\n(回復: ${player.life} ➔ ${Math.min(player.maxLife, player.life + 1)})`, action: () => { player.life = Math.min(player.maxLife, player.life + 1); }, isAvailable: () => player.maxLife > 3, reqText: "MATRIX SHIELD 習得" },
+            { id: 'spd', parentId: 'maxlife', category: '🛡️ DEFENSE & UTILITY', short: '🚀VELOCITY', x: 1160+node_base_point_x, y: 660+node_base_point_y, status: () => `SPD:${player.arrowSpeed}`, text: () => `🚀 HYPER VELOCITY\n(弾速・射程: ${player.arrowSpeed} ➔ ${player.arrowSpeed + 2.5})`, action: () => { player.arrowSpeed += 2.5; }, isAvailable: () => player.maxLife > 3, reqText: "MATRIX SHIELD 習得" },
+            { id: 'n_xp', parentId: 'maxlife', category: '🛡️ DEFENSE & UTILITY', short: '📊HARVEST', x: 1140+node_base_point_x, y: 820+node_base_point_y, status: () => `+${player.normalXpBonus}`, text: () => `📊 DATA HARVEST +1\n(通常ボーナスXP: +${player.normalXpBonus} ➔ +${player.normalXpBonus + 1})`, action: () => { player.normalXpBonus += 1; }, isAvailable: () => player.maxLife > 3, reqText: "MATRIX SHIELD 習得" },
+            { id: 'auto_exp', parentId: 'n_xp', category: '🛡️ DEFENSE & UTILITY', short: '💥NITRO', x: 1300+node_base_point_x, y: 940+node_base_point_y, status: () => `Lv.${player.autoExplosionLevel}`, text: () => `💥 NITRO PULSE +1\n(自動範囲爆発: Lv${player.autoExplosionLevel} ➔ Lv${player.autoExplosionLevel + 1})`, action: () => { player.autoExplosionLevel += 1; }, isAvailable: () => player.normalXpBonus > 0, reqText: "DATA HARVEST 習得" },
+
+            // --- 🔮 ELEMENTAL SYSTEM (左から真下にかけて放射状に拡張) ---
+            // レーン1 (9時方向: 毒系)
+            { id: 'n_ps', parentId: 'core', category: '🔮 ELEMENTAL SYSTEM', short: '🧪BIO-HZ', x: 600+node_base_point_x, y: 500+node_base_point_y, status: () => `Lv.${player.normalPoisonLevel}`, text: () => `🧪 BIO HAZARD +1\n(毒Dmg: Lv${player.normalPoisonLevel} ➔ Lv${player.normalPoisonLevel + 1})`, action: () => { player.normalPoisonLevel += 1; }, isAvailable: () => player.baseDamage > 1, reqText: "PULSE DAMAGE Lv2以上" },
+            { id: 'ps_chance', parentId: 'n_ps', category: '🔮 ELEMENTAL SYSTEM', short: '🔮PS-PROB', x: 420+node_base_point_x, y: 500+node_base_point_y, status: () => `${Math.round(player.psChance*100)}%`, text: () => `🔮 TOXIN CATALYST +20%\n(毒付与率: ${Math.round(player.psChance*100)}% ➔ ${Math.round((player.psChance + 0.2)*100)}%)`, action: () => { player.psChance += 0.2; }, isAvailable: () => player.normalPoisonLevel > 0, reqText: "BIO HAZARD 習得" },
             
-            { id: 'n_el', parentId: 'core', category: '🔮 ELEMENTAL SYSTEM', short: '⚡STORM', x: 1002, y: 772, status: () => `Lv.${player.normalElectricLevel}`, text: () => `⚡ LIGHTNING STORM +1 \n(通常弾に雷撃効果付与: Lv${player.normalElectricLevel} ➔ Lv${player.normalElectricLevel + 1})`, action: () => { player.normalElectricLevel += 1; }, isAvailable: () => true },
-            { id: 'el_chance', parentId: 'n_el', category: '🔮 ELEMENTAL SYSTEM', short: '⚡EL-PROB', x: 1042, y: 612, status: () => `${Math.round(player.elChance*100)}%`, text: () => `⚡ STORM ACCELERATOR +20%\n(雷発動率: ${Math.round(player.elChance*100)}% ➔ ${Math.round((player.elChance + 0.2)*100)}%)`, action: () => { player.elChance += 0.2; }, isAvailable: () => player.normalElectricLevel > 0, reqText: "LIGHTNING STORM 習得" },
+            // レーン2 (7.5時方向: ノックバック系)
+            { id: 'n_kb', parentId: 'core', category: '🔮 ELEMENTAL SYSTEM', short: '💥IMPACT', x: 620+node_base_point_x, y: 660+node_base_point_y, status: () => `Lv.${player.normalKnockbackLevel}`, text: () => `💥 IMPACT WAVE +1\n(KB衝撃力: Lv${player.normalKnockbackLevel} ➔ Lv${player.normalKnockbackLevel + 1})`, action: () => { player.normalKnockbackLevel += 1; }, isAvailable: () => player.baseDamage > 1, reqText: "PULSE DAMAGE Lv2以上" },
+            { id: 'kb_chance', parentId: 'n_kb', category: '🔮 ELEMENTAL SYSTEM', short: '🔮KB-PROB', x: 460+node_base_point_x, y: 800+node_base_point_y, status: () => `${Math.round(player.kbChance*100)}%`, text: () => `🔮 KB ACCELERATOR +20%\n(ノックバック率: ${Math.round(player.kbChance*100)}% ➔ ${Math.round((player.kbChance + 0.2)*100)}%)`, action: () => { player.kbChance += 0.2; }, isAvailable: () => player.normalKnockbackLevel > 0, reqText: "IMPACT WAVE 習得" },
             
-            { id: 'n_fr', parentId: 'core', category: '🔮 ELEMENTAL SYSTEM', short: '❄️BLIZZD', x: 1082, y: 812, status: () => `Lv.${player.normalFreezeLevel}`, text: () => `❄️ BLIZZARD CHILL +1 \n(通常弾に凍結効果付与: Lv${player.normalFreezeLevel} ➔ Lv${player.normalFreezeLevel + 1})`, action: () => { player.normalFreezeLevel += 1; }, isAvailable: () => true },
-            { id: 'fr_chance', parentId: 'n_fr', category: '🔮 ELEMENTAL SYSTEM', short: '❄️FR-PROB', x: 1182, y: 662, status: () => `${Math.round(player.frChance*100)}%`, text: () => `❄️ CHILL ACCELERATOR +20%\n(凍結発動率: ${Math.round(player.frChance*100)}% ➔ ${Math.round((player.frChance + 0.2)*100)}%)`, action: () => { player.frChance += 0.2; }, isAvailable: () => player.normalFreezeLevel > 0, reqText: "BLIZZARD CHILL 習得" }
-        ];
-
-        // 🗺️ ツリーのノード間を繋ぐ矢印コネクター定義
-        const TREE_CONNECTORS = [
-            // WEAPON
-            { cat: '⚔️ WEAPON SYSTEM', r: 2, c: 2, span: 1, txt: '↙' },
-            { cat: '⚔️ WEAPON SYSTEM', r: 2, c: 4, span: 1, txt: '↘' },
-            { cat: '⚔️ WEAPON SYSTEM', r: 4, c: 1, span: 2, txt: '⬇' },
-            { cat: '⚔️ WEAPON SYSTEM', r: 4, c: 4, span: 1, txt: '⬇' },
-            { cat: '⚔️ WEAPON SYSTEM', r: 4, c: 5, span: 1, txt: '⬇' },
-            { cat: '⚔️ WEAPON SYSTEM', r: 6, c: 1, span: 1, txt: '⬇' },
-            { cat: '⚔️ WEAPON SYSTEM', r: 6, c: 2, span: 1, txt: '⬇' },
-
-            // DEFENSE
-            { cat: '🛡️ DEFENSE & UTILITY', r: 2, c: 1, span: 1, txt: '↙' },
-            { cat: '🛡️ DEFENSE & UTILITY', r: 2, c: 2, span: 1, txt: '⬇' },
-            { cat: '🛡️ DEFENSE & UTILITY', r: 2, c: 3, span: 1, txt: '↘' },
-            { cat: '🛡️ DEFENSE & UTILITY', r: 4, c: 3, span: 1, txt: '⬇' },
-
-            // ELEMENTAL
-            { cat: '🔮 ELEMENTAL SYSTEM', r: 2, c: 1, span: 1, txt: '⬇' },
-            { cat: '🔮 ELEMENTAL SYSTEM', r: 2, c: 2, span: 1, txt: '⬇' },
-            { cat: '🔮 ELEMENTAL SYSTEM', r: 2, c: 3, span: 1, txt: '⬇' },
-            { cat: '🔮 ELEMENTAL SYSTEM', r: 2, c: 4, span: 1, txt: '⬇' },
+            // レーン3 (6.5時方向: 電撃系)
+            { id: 'n_el', parentId: 'core', category: '🔮 ELEMENTAL SYSTEM', short: '⚡LIGHTNG', x: 720+node_base_point_x, y: 800+node_base_point_y, status: () => `Lv.${player.normalElectricLevel}`, text: () => `⚡ CHAIN LIGHTNING +1\n(連鎖電撃: Lv${player.normalElectricLevel} ➔ Lv${player.normalElectricLevel + 1})`, action: () => { player.normalElectricLevel += 1; }, isAvailable: () => player.baseDamage > 1, reqText: "PULSE DAMAGE Lv2以上" },
+            { id: 'el_chance', parentId: 'n_el', category: '🔮 ELEMENTAL SYSTEM', short: '🔮EL-PROB', x: 620+node_base_point_x, y: 960+node_base_point_y, status: () => `${Math.round(player.elChance*100)}%`, text: () => `🔮 STORM GENERATOR +20%\n(電撃率: ${Math.round(player.elChance*100)}% ➔ ${Math.round((player.elChance + 0.2)*100)}%)`, action: () => { player.elChance += 0.2; }, isAvailable: () => player.normalElectricLevel > 0, reqText: "CHAIN LIGHTNING 習得" },
+            
+            // レーン4 (5.5時方向: 凍結系)
+            { id: 'n_fr', parentId: 'core', category: '🔮 ELEMENTAL SYSTEM', short: '❄️FREEZE', x: 880+node_base_point_x, y: 860+node_base_point_y, status: () => `Lv.${player.normalFreezeLevel}`, text: () => `❄️ CRYSTAL FREEZE +1\n(凍結時間: Lv${player.normalFreezeLevel} ➔ Lv${player.normalFreezeLevel + 1})`, action: () => { player.normalFreezeLevel += 1; }, isAvailable: () => player.baseDamage > 1, reqText: "PULSE DAMAGE Lv2以上" },
+            { id: 'fr_chance', parentId: 'n_fr', category: '🔮 ELEMENTAL SYSTEM', short: '🔮FR-PROB', x: 940+node_base_point_x, y: 1040+node_base_point_y, status: () => `${Math.round(player.frChance*100)}%`, text: () => `🔮 FROST MATRIX +20%\n(完全凍結率: ${Math.round(player.frChance*100)}% ➔ ${Math.round((player.frChance + 0.2)*100)}%)`, action: () => { frChance += 0.2; }, isAvailable: () => player.normalFreezeLevel > 0, reqText: "CRYSTAL FREEZE 習得" }
         ];
 
         function logStatusToConsole() {
@@ -1019,10 +1005,11 @@
                 if (skill.parentId) {
                     const parent = SKILL_TREE.find(s => s.id === skill.parentId);
                     if (parent) {
-                        let x1 = parent.x + 38; // 76pxノードの中心
-                        let y1 = parent.y + 38;
-                        let x2 = skill.x + 38;
-                        let y2 = skill.y + 38;
+                        let node_center = 60;
+                        let x1 = parent.x + node_center; // 76pxノードの中心
+                        let y1 = parent.y + node_center;
+                        let x2 = skill.x + node_center;
+                        let y2 = skill.y + node_center;
 
                         let line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
                         line.setAttribute('x1', x1);
