@@ -719,7 +719,7 @@
                     let isBoss = (e.type === 'mid_boss' || e.type === 'final_boss');
                     createParticles(e.x, e.y, getEnemyColor(e.maxHp, e.type), isBoss ? 40 : 18);
                     let xpGained = e.type === 'final_boss' ? 25 : (e.type === 'mid_boss' ? 10 : (e.type === 'composite_glitch' || e.type === 'shell_core' ? 3 : 1));
-                    if (e.killedByNormal) xpGained += player.normalXpBonus;
+                    xpGained += player.normalXpBonus;
                     gainXp(xpGained);
                     let baseScoreVal = e.type === 'final_boss' ? 10000 : (e.type === 'mid_boss' ? 4000 : 120);
                     score += baseScoreVal * (remainingTime <= 300 ? e.maxHp / 10 : e.maxHp); 
