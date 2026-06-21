@@ -57,7 +57,7 @@
             font-size: 18px;
             font-weight: 900;
             margin-bottom: 2px;
-            color: #00ffcc;
+            color: #e99a09;
             text-shadow: 0 0 15px rgba(0, 255, 204, 0.8);
             letter-spacing: 3px;
             text-align: center;
@@ -65,7 +65,7 @@
         .upgrade-sub {
             font-size: 20px;
             font-weight: bold;
-            color: #00ffcc;
+            color: #ff9900;
             letter-spacing: 2px;
             margin-bottom: 8px;
             text-align: center;
@@ -298,7 +298,7 @@
 
     <div id="upgrade-screen">
         <div class="upgrade-title">▲ SYSTEM UPGRADE MATRIX ▲</div>
-        <div class="upgrade-sub" id="upgrade-sp-hud">[ AVAILABLE SP: 0 ]</div>
+        <div class="upgrade-sub" id="upgrade-sp-hud">[ SKILL POINT (SP): 0 ]</div>
         
         <div id="skill-tree-viewport">
             <svg id="skill-tree-canvas-overlay"></svg>
@@ -990,7 +990,7 @@
             const svgOverlay = document.getElementById('skill-tree-canvas-overlay');
             const spHud = document.getElementById('upgrade-sp-hud');
             
-            spHud.innerText = `[ AVAILABLE SP: ${player.skillPoints} ]`;
+            spHud.innerText = `[ SKILL POINT (SP): ${player.skillPoints} ]`;
             if (player.skillPoints > 0) spHud.style.color = "#00ffcc";
             else spHud.style.color = "#666";
 
@@ -1188,7 +1188,7 @@
             } else {
                 reqDiv.innerText = "";
                 confirmBtn.className = '';
-                confirmBtn.innerText = "LEARN (-1 SP)";
+                confirmBtn.innerText = "UPGRADE (-1 SP)";
             }
 
             overlay.style.display = 'flex';
