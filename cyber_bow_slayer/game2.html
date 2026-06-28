@@ -1,0 +1,1486 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Cyber Bow Slayer v10.0 (Hardmode Enhanced)</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        html {
+            background-color: #000000;
+        }
+        body {
+            background-color: #05050a;
+            font-family: 'Courier New', Courier, monospace, sans-serif;
+            overflow: hidden;
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transform: scale(0.8);
+            transform-origin: center center;
+        }
+        canvas {
+            background: radial-gradient(circle at center, #101026 0%, #050511 100%);
+            box-shadow: 0 0 30px rgba(0, 240, 255, 0.3);
+            touch-action: none;
+            width: 100vw;
+            height: 100vh;
+            max-width: calc(100vh * 9 / 16);
+            max-height: calc(100vw * 16 / 9);
+        }
+        
+/* === スキルツリー画面 UI === */
+        #upgrade-screen {
+            display: none;
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(4, 4, 12, 0.98);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            color: white;
+            z-index: 10;
+            padding: 15px 10px;
+        }
+        .upgrade-title {
+            font-size: 18px;
+            font-weight: 900;
+            margin-bottom: 2px;
+            color: #e99a09;
+            text-shadow: 0 0 15px rgba(0, 255, 204, 0.8);
+            letter-spacing: 3px;
+            text-align: center;
+        }
+        .upgrade-sub {
+            font-size: 20px;
+            font-weight: bold;
+            color: #ff9900;
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+            text-align: center;
+            text-shadow: 0 0 8px rgba(0, 255, 204, 0.4);
+        }
+
+        /* ビューポート（ドラッグ・スクロール可能エリア） */
+        #skill-tree-viewport {
+            width: 95%;
+            height: 80vh;
+            border: 1px solid rgba(0, 240, 255, 0.25);
+            background: radial-gradient(circle at center, #06061a 0%, #020208 100%);
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            cursor: grab;
+            box-shadow: inset 0 0 20px rgba(0, 240, 255, 0.15);
+        }
+        #skill-tree-viewport:active {
+            cursor: grabbing;
+        }
+
+        /* SVGコネクター線描画レイヤー */
+        #skill-tree-canvas-overlay {
+            position: absolute;
+            top: 0; left: 0;
+            width: 2000px;
+            height: 2000px;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* ツリーラッパー（このレイヤーを移動・拡縮する） */
+        #skill-tree-wrapper {
+            position: absolute;
+            width: 2000px;
+            height: 2000px;
+            top: 0; left: 0;
+            transform-origin: 0 0;
+            z-index: 2;
+        }
+
+       /* 🔍 <style> タグ内にある .skill-node を以下のように修正 */
+        .skill-node {
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: #111122;
+            border: 2px solid #444466;
+            color: #8888aa;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            z-index: 2;
+            
+            /* 🛠️ 文字サイズと配置の調整（ここを変更・追加） */
+            font-size: 30px;         /* 12px等から15px〜16pxに大きく変更 */
+            font-weight: bold;       /* 文字を太字にして視認性を向上 */
+            line-height: 1.3;        /* 行間を詰めて円内に収まりやすく */
+            white-space: pre-line;   /* 改行を有効化 */
+            padding: 5px;            /* 円の端に文字がくっつかないように内側余白 */
+        }
+        .skill-node:active {
+            transform: scale(0.95);
+        }
+        .skill-node .node-name {
+            font-size: 20px;    /* 8px から 13px にさらに拡大 */
+            font-weight: bold;
+            color: #00f0ff;
+            text-align: center;
+            line-height: 1.2;
+            margin-bottom: 4px;
+            text-shadow: 0 0 3px rgba(0, 240, 255, 0.4);
+            word-break: break-all;
+        }
+        .skill-node .node-status {
+            font-size: 20px;    /* 8px から 13px にさらに拡大 */
+            color: #00ffcc;
+            font-weight: bold;
+        }
+
+        /* 習得済みノード */
+        .skill-node.mastered {
+            border-color: #ffd700;
+            box-shadow: 0 0 12px rgba(255, 215, 0, 0.4);
+            background: linear-gradient(135deg, rgba(35, 30, 10, 0.95) 0%, rgba(15, 12, 4, 0.98) 100%);
+        }
+        .skill-node.mastered .node-name {
+            color: #ffd700;
+            text-shadow: 0 0 4px rgba(255, 215, 0, 0.5);
+        }
+        
+        /* 未解放（ロック）状態 */
+        .skill-node.locked {
+            opacity: 0.3;
+            border-color: #441122;
+            background: #10050a;
+        }
+        .skill-node.locked .node-name { color: #884455; text-shadow: none; }
+        .skill-node.locked .node-status { color: #663344; }
+        
+        /* 習得可能状態（アニメーション付き） */
+        .skill-node.available-learn {
+            border-color: #00ffcc;
+            box-shadow: 0 0 10px rgba(0, 255, 204, 0.3);
+            animation: pulse-border 2s infinite ease-in-out;
+        }
+        @keyframes pulse-border {
+            0% { border-color: #00ffcc; box-shadow: 0 0 6px rgba(0, 255, 204, 0.2); }
+            50% { border-color: #00f0ff; box-shadow: 0 0 14px rgba(0, 240, 255, 0.5); }
+            100% { border-color: #00ffcc; box-shadow: 0 0 6px rgba(0, 255, 204, 0.2); }
+        }
+
+        /* 決定（レジューム）ボタン */
+        #apply-btn {
+            background: linear-gradient(90deg, #00ffcc, #00f0ff);
+            color: #000;
+            border: none;
+            padding: 10px 45px;
+            margin-top: 12px;
+            font-size: 13px;
+            font-weight: bold;
+            border-radius: 25px;
+            cursor: pointer;
+            letter-spacing: 1.5px;
+            box-shadow: 0 0 15px rgba(0, 255, 204, 0.4);
+            transition: all 0.2s;
+        }
+        #apply-btn:active { transform: scale(0.95); }
+
+        /* 確認ダイアログ用モーダルCSS */
+        #skill-dialog-overlay {
+            display: none;
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(2, 2, 6, 0.85);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+        }
+        #skill-dialog-box {
+            width: 85%;
+            max-width: 300px;
+            background: linear-gradient(180deg, #0a0a1a 0%, #04040c 100%);
+            border: 2px solid #00f0ff;
+            border-radius: 12px;
+            padding: 16px;
+            color: #fff;
+            text-align: center;
+            box-shadow: 0 0 25px rgba(0, 240, 255, 0.35);
+            font-family: sans-serif;
+        }
+        #dialog-skill-cat { font-size: 18px; color: #ffd700; margin-bottom: 4px; letter-spacing: 1px; }
+        #dialog-skill-name { font-size: 16px; font-weight: bold; color: #00f0ff; margin-bottom: 2px; }
+        #dialog-skill-status { font-size: 16px; color: #00ffcc; margin-bottom: 10px; }
+        #dialog-skill-desc { font-size: 16px; color: #cccccc; text-align: left; line-height: 1.4; white-space: pre-wrap; background: rgba(0,0,0,0.3); padding: 8px; border-radius: 6px; }
+        
+        .dialog-buttons { display: flex; justify-content: space-between; gap: 10px; margin-top: 15px; }
+        .dialog-buttons button {
+            flex: 1; padding: 8px; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 12px; border: none; transition: transform 0.1s;
+        }
+        .dialog-buttons button:active { transform: scale(0.95); }
+        #dialog-cancel-btn { background: #333344; color: #aaa; }
+        #dialog-confirm-btn { background: linear-gradient(90deg, #00ffcc, #00f0ff); color: #000; box-shadow: 0 0 10px rgba(0, 255, 204, 0.3); }
+        #dialog-confirm-btn.disabled { background: #223333; color: #557777; cursor: not-allowed; box-shadow: none; }
+
+        #gameover-screen, #gameclear-screen {
+            display: none;
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            z-index: 10;
+            text-align: center;
+        }
+        #gameover-screen { background: rgba(20, 0, 0, 0.9); }
+        #gameclear-screen { background: rgba(0, 20, 10, 0.9); }
+
+        .go-title {
+            font-size: 42px;
+            color: #ff3333;
+            text-shadow: 0 0 20px rgba(255, 51, 51, 0.6);
+            margin-bottom: 15px;
+            letter-spacing: 4px;
+        }
+        .gc-title {
+            font-size: 38px;
+            color: #00ffcc;
+            text-shadow: 0 0 20px rgba(0, 255, 204, 0.6);
+            margin-bottom: 15px;
+            letter-spacing: 4px;
+        }
+        .restart-btn {
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            margin-top: 30px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        #gameover-screen .restart-btn {
+            background: #ff3333;
+            box-shadow: 0 0 15px rgba(255, 51, 51, 0.4);
+        }
+        #gameclear-screen .restart-btn {
+            background: #00ffcc;
+            color: black;
+            box-shadow: 0 0 15px rgba(0, 255, 204, 0.4);
+        }
+        .restart-btn:active { transform: scale(0.95); }
+    </style>
+</head>
+<body>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="upgrade-screen">
+        <div class="upgrade-title">▲ SYSTEM UPGRADE MATRIX ▲</div>
+        <div class="upgrade-sub" id="upgrade-sp-hud">[ SKILL POINT (SP): 0 ]</div>
+        
+        <div id="skill-tree-viewport">
+            <svg id="skill-tree-canvas-overlay"></svg>
+            <div id="skill-tree-wrapper">
+                </div>
+        </div>
+
+        <button id="apply-btn">RESUME SYSTEM</button>
+    </div>
+
+    <div id="skill-dialog-overlay">
+        <div id="skill-dialog-box">
+            <div id="dialog-skill-cat">CATEGORY</div>
+            <div id="dialog-skill-name">SKILL NAME</div>
+            <div id="dialog-skill-status">STATUS</div>
+            <div id="dialog-skill-desc">DESCRIPTION</div>
+            <div id="dialog-skill-req" style="color: #ff3366; margin-top: 5px; font-weight: bold; font-size: 11px;"></div>
+            <div class="dialog-buttons">
+                <button id="dialog-cancel-btn">CANCEL</button>
+                <button id="dialog-confirm-btn">UPGRADE</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="gameover-screen">
+        <h1 class="go-title">MISSION FAILED</h1>
+        <p id="final-score" style="font-size: 18px; color: #aaa; line-height: 1.6;">SCORE: 0</p>
+        <button class="restart-btn" onclick="resetGame()">REBOOT SYSTEM</button>
+    </div>
+
+    <div id="gameclear-screen">
+        <h1 class="gc-title">SYSTEM SECURED</h1>
+        <p id="clear-score" style="font-size: 18px; color: #aaa; line-height: 1.6;">SCORE: 0</p>
+        <button class="restart-btn" onclick="resetGame()">REBOOT SYSTEM</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const V_WIDTH = 360;
+        const V_HEIGHT = 640;
+        canvas.width = V_WIDTH;
+        canvas.height = V_HEIGHT;
+
+        let gameState = 'playing';
+        let score = 0;
+        let bestScore = 0;
+        let level = 1;
+        let xp = 0;
+        let nextXp = 1; 
+        let gameFrame = 0;
+        let remainingTime = 600; 
+        let bossToSpawn = null;
+
+        let bombCount = 2;
+        let bombFlashTimer = 0;
+
+        let player = {
+            x: V_WIDTH / 2,
+            y: V_HEIGHT - 80,
+            baseDamage: 1,
+            chargeSpeed: 1,
+            maxLife: 3,
+            life: 3,
+            arrowSpeed: 8,
+            angle: -Math.PI / 2,
+            pierceBonus: 0,
+            cooldownTimer: 0,
+            cooldownMax: 45, 
+            normalCooldownMax: 30, 
+            
+            normalBurst: 1,
+            maxBurst: 1,
+            normalSpread: 1,
+            maxSpread: 1,
+            shotQueue: [],
+
+            normalKnockbackLevel: 0,
+            normalPoisonLevel: 0,
+            normalElectricLevel: 0,
+            normalFreezeLevel: 0,
+            normalXpBonus: 0,
+            
+            autoExplosionLevel: 0,
+            autoExplosionTimer: 0,
+            
+            kbChance: 0.30,
+            psChance: 0.30,
+            elChance: 0.30,
+            frChance: 0.30,
+
+            skillPoints: 0 
+        };
+
+        const DEAD_LINE_Y = V_HEIGHT - 120;
+
+        let isDragging = false; 
+        let startPoint = { x: 0, y: 0 };
+        let currentPoint = { x: 0, y: 0 };
+        let chargeValue = 0;
+
+        let arrows = [];
+        let enemies = [];
+        let particles = [];
+        let meteors = [];      
+        let blastCircles = []; 
+        let lightningLines = []; 
+        let spawnTimer = 0;
+        let spawnInterval = 120;
+        let bossWarningTimer = 0;
+
+        let selectedSkillId = null; // 現在ツリー画面で選択・ハイライトされているスキルID
+
+        // 🌳 2次元接続スキル構造マップデータ（重なり完全解消版）
+        const node_base_point_x = 150;
+        const node_base_point_y = 450;
+        const SKILL_TREE = [
+            { id: 'core', category: 'CORE', short: '🌌 CORE\nMATRIX', x: 800+node_base_point_x, y: 500+node_base_point_y, status: () => 'ACTIVE', text: () => '中央コアシステム。各セクターへの拡張が可能です。', isAvailable: () => true },
+            
+            // --- ⚔️ WEAPON SYSTEM (上セクターへ綺麗に扇状展開) ---
+            { id: 'dmg', parentId: 'core', category: '⚔️ WEAPON SYSTEM', short: '⚡PULSE', x: 800+node_base_point_x, y: 320+node_base_point_y, status: () => `Lv.${player.baseDamage}`, text: () => `⚡ PULSE DAMAGE +1\n(ベース威力: ${player.baseDamage} ➔ ${player.baseDamage + 1})`, action: () => { player.baseDamage += 1; }, isAvailable: () => true },
+            { id: 'chg', parentId: 'dmg', category: '⚔️ WEAPON SYSTEM', short: '⏱️CHARGE', x: 640+node_base_point_x, y: 200+node_base_point_y, status: () => `${Math.round(player.chargeSpeed*100)}%`, text: () => `⏱️ OVERCHARGE +40%\n(チャージ速度: ${Math.round(player.chargeSpeed*100)}% ➔ ${Math.round((player.chargeSpeed + 0.4)*100)}%)`, action: () => { player.chargeSpeed += 0.4; }, isAvailable: () => player.baseDamage > 1, reqText: "PULSE DAMAGE Lv2以上" },
+            { id: 'n_cooldown', parentId: 'dmg', category: '⚔️ WEAPON SYSTEM', short: '⏱️RAPID', x: 960+node_base_point_x, y: 200+node_base_point_y, status: () => `${player.normalCooldownMax}F`, text: () => `⏱️ RAPID FREQUENCY\n(通常弾間隔: ${player.normalCooldownMax}F ➔ ${Math.max(0, player.normalCooldownMax - 6)}F)`, action: () => { player.normalCooldownMax = Math.max(0, player.normalCooldownMax - 6); }, isAvailable: () => player.baseDamage > 1, reqText: "PULSE DAMAGE Lv2以上" },
+            { id: 'pierce', parentId: 'chg', category: '⚔️ WEAPON SYSTEM', short: '🏹PIERCE', x: 480+node_base_point_x, y: 80+node_base_point_y, status: () => `+${player.pierceBonus}`, text: () => `🏹 MAX CHARGE PIERCE +1\n(金弾追加貫通数: ${player.pierceBonus} ➔ ${player.pierceBonus + 1})`, action: () => { player.pierceBonus += 1; }, isAvailable: () => player.chargeSpeed > 1, reqText: "OVERCHARGE 習得" },
+            { id: 'n_burst', parentId: 'n_cooldown', category: '⚔️ WEAPON SYSTEM', short: '🔫BURST', x: 960+node_base_point_x, y: 40+node_base_point_y, status: () => `${player.normalBurst}発`, text: () => `🔫 NORMAL BURST +1\n(通常弾連射数: ${player.normalBurst}発 ➔ ${player.normalBurst + 1}発)`, action: () => { player.normalBurst += 1; }, isAvailable: () => player.normalCooldownMax < 30, reqText: "RAPID FREQUENCY 習得" },
+            { id: 'n_spread', parentId: 'n_cooldown', category: '⚔️ WEAPON SYSTEM', short: '░SPREAD', x: 1120+node_base_point_x, y: 80+node_base_point_y, status: () => `${player.normalSpread}WAY`, text: () => `░ NORMAL SPREAD +1\n(通常弾同時放射: ${player.normalSpread}WAY ➔ ${player.normalSpread + 1}WAY)`, action: () => { player.normalSpread += 1; }, isAvailable: () => player.normalCooldownMax < 30, reqText: "RAPID FREQUENCY 習得" },
+            { id: 'm_burst', parentId: 'pierce', category: '⚔️ WEAPON SYSTEM', short: '👑M-BURST', x: 320+node_base_point_x, y: -20+node_base_point_y, status: () => `${player.maxBurst}発`, text: () => `👑 MAX OVER BURST +1\n(金弾連射数: ${player.maxBurst}発 ➔ ${player.maxBurst + 1}発)`, action: () => { player.maxBurst += 1; }, isAvailable: () => player.pierceBonus > 0, reqText: "MAX CHARGE PIERCE 習得" },
+            { id: 'm_spread', parentId: 'pierce', category: '⚔️ WEAPON SYSTEM', short: '🔱M-SPREAD', x: 480+node_base_point_x, y: -70+node_base_point_y, status: () => `${player.maxSpread}WAY`, text: () => `🔱 MAX OVER SPREAD +1\n(金弾同時放射: ${player.maxSpread}WAY ➔ ${player.maxSpread + 1}WAY)`, action: () => { player.maxSpread += 1; }, isAvailable: () => player.pierceBonus > 0, reqText: "MAX CHARGE PIERCE 習得" },
+
+            // --- 🛡️ DEFENSE & UTILITY (右下セクターへ広く均等展開) ---
+            { id: 'maxlife', parentId: 'core', category: '🛡️ DEFENSE & UTILITY', short: '🛡️SHIELD', x: 980+node_base_point_x, y: 580+node_base_point_y, status: () => `MAX:${player.maxLife}`, text: () => `🛡️ MATRIX SHIELD +1\n(耐久上限: ${player.maxLife} ➔ ${player.maxLife + 1})`, action: () => { player.maxLife += 1; player.life += 1; }, isAvailable: () => true },
+            { id: 'heal', parentId: 'maxlife', category: '🛡️ DEFENSE & UTILITY', short: '💖REPAIR', x: 1160+node_base_point_x, y: 500+node_base_point_y, status: () => `${player.life}/${player.maxLife}`, text: () => `💖 NANO REPAIR +1\n(回復: ${player.life} ➔ ${Math.min(player.maxLife, player.life + 1)})`, action: () => { player.life = Math.min(player.maxLife, player.life + 1); }, isAvailable: () => player.maxLife > 3, reqText: "MATRIX SHIELD 習得" },
+            { id: 'spd', parentId: 'maxlife', category: '🛡️ DEFENSE & UTILITY', short: '🚀VELOCITY', x: 1160+node_base_point_x, y: 660+node_base_point_y, status: () => `SPD:${player.arrowSpeed}`, text: () => `🚀 HYPER VELOCITY\n(弾速・射程: ${player.arrowSpeed} ➔ ${player.arrowSpeed + 2.5})`, action: () => { player.arrowSpeed += 2.5; }, isAvailable: () => player.maxLife > 3, reqText: "MATRIX SHIELD 習得" },
+            { id: 'n_xp', parentId: 'maxlife', category: '🛡️ DEFENSE & UTILITY', short: '📊HARVEST', x: 1140+node_base_point_x, y: 820+node_base_point_y, status: () => `+${player.normalXpBonus}`, text: () => `📊 DATA HARVEST +1\n(通常ボーナスXP: +${player.normalXpBonus} ➔ +${player.normalXpBonus + 1})`, action: () => { player.normalXpBonus += 1; }, isAvailable: () => player.maxLife > 3, reqText: "MATRIX SHIELD 習得" },
+            { id: 'auto_exp', parentId: 'n_xp', category: '🛡️ DEFENSE & UTILITY', short: '💥NITRO', x: 1300+node_base_point_x, y: 940+node_base_point_y, status: () => `Lv.${player.autoExplosionLevel}`, text: () => `💥 NITRO PULSE +1\n(自動範囲爆発: Lv${player.autoExplosionLevel} ➔ Lv${player.autoExplosionLevel + 1})`, action: () => { player.autoExplosionLevel += 1; }, isAvailable: () => player.normalXpBonus > 0, reqText: "DATA HARVEST 習得" },
+
+            // --- 🔮 ELEMENTAL SYSTEM (左から真下にかけて放射状に拡張) ---
+            // レーン1 (9時方向: 毒系)
+            { id: 'n_ps', parentId: 'core', category: '🔮 ELEMENTAL SYSTEM', short: '🧪BIO-HZ', x: 600+node_base_point_x, y: 500+node_base_point_y, status: () => `Lv.${player.normalPoisonLevel}`, text: () => `🧪 BIO HAZARD +1\n(毒Dmg: Lv${player.normalPoisonLevel} ➔ Lv${player.normalPoisonLevel + 1})`, action: () => { player.normalPoisonLevel += 1; }, isAvailable: () => true },
+            { id: 'ps_chance', parentId: 'n_ps', category: '🔮 ELEMENTAL SYSTEM', short: '🔮PS-PROB', x: 420+node_base_point_x, y: 500+node_base_point_y, status: () => `${Math.round(player.psChance*100)}%`, text: () => `🔮 TOXIN CATALYST +20%\n(毒付与率: ${Math.round(player.psChance*100)}% ➔ ${Math.round((player.psChance + 0.2)*100)}%)`, action: () => { player.psChance += 0.2; }, isAvailable: () => player.normalPoisonLevel > 0, reqText: "BIO HAZARD 習得" },
+            
+            // レーン2 (7.5時方向: ノックバック系)
+            { id: 'n_kb', parentId: 'core', category: '🔮 ELEMENTAL SYSTEM', short: '💥IMPACT', x: 620+node_base_point_x, y: 660+node_base_point_y, status: () => `Lv.${player.normalKnockbackLevel}`, text: () => `💥 IMPACT WAVE +1\n(KB衝撃力: Lv${player.normalKnockbackLevel} ➔ Lv${player.normalKnockbackLevel + 1})`, action: () => { player.normalKnockbackLevel += 1; }, isAvailable: () => true },
+            { id: 'kb_chance', parentId: 'n_kb', category: '🔮 ELEMENTAL SYSTEM', short: '🔮KB-PROB', x: 460+node_base_point_x, y: 800+node_base_point_y, status: () => `${Math.round(player.kbChance*100)}%`, text: () => `🔮 KB ACCELERATOR +20%\n(ノックバック率: ${Math.round(player.kbChance*100)}% ➔ ${Math.round((player.kbChance + 0.2)*100)}%)`, action: () => { player.kbChance += 0.2; }, isAvailable: () => player.normalKnockbackLevel > 0, reqText: "IMPACT WAVE 習得" },
+            
+            // レーン3 (6.5時方向: 電撃系)
+            { id: 'n_el', parentId: 'core', category: '🔮 ELEMENTAL SYSTEM', short: '⚡LIGHTNG', x: 720+node_base_point_x, y: 800+node_base_point_y, status: () => `Lv.${player.normalElectricLevel}`, text: () => `⚡ CHAIN LIGHTNING +1\n(連鎖電撃: Lv${player.normalElectricLevel} ➔ Lv${player.normalElectricLevel + 1})`, action: () => { player.normalElectricLevel += 1; }, isAvailable: () => true },
+            { id: 'el_chance', parentId: 'n_el', category: '🔮 ELEMENTAL SYSTEM', short: '🔮EL-PROB', x: 620+node_base_point_x, y: 960+node_base_point_y, status: () => `${Math.round(player.elChance*100)}%`, text: () => `🔮 STORM GENERATOR +20%\n(電撃率: ${Math.round(player.elChance*100)}% ➔ ${Math.round((player.elChance + 0.2)*100)}%)`, action: () => { player.elChance += 0.2; }, isAvailable: () => player.normalElectricLevel > 0, reqText: "CHAIN LIGHTNING 習得" },
+            
+            // レーン4 (5.5時方向: 凍結系)
+            { id: 'n_fr', parentId: 'core', category: '🔮 ELEMENTAL SYSTEM', short: '❄️FREEZE', x: 880+node_base_point_x, y: 860+node_base_point_y, status: () => `Lv.${player.normalFreezeLevel}`, text: () => `❄️ CRYSTAL FREEZE +1\n(凍結時間: Lv${player.normalFreezeLevel} ➔ Lv${player.normalFreezeLevel + 1})`, action: () => { player.normalFreezeLevel += 1; }, isAvailable: () => true },
+            { id: 'fr_chance', parentId: 'n_fr', category: '🔮 ELEMENTAL SYSTEM', short: '🔮FR-PROB', x: 940+node_base_point_x, y: 1040+node_base_point_y, status: () => `${Math.round(player.frChance*100)}%`, text: () => `🔮 FROST MATRIX +20%\n(完全凍結率: ${Math.round(player.frChance*100)}% ➔ ${Math.round((player.frChance + 0.2)*100)}%)`, action: () => { player.frChance += 0.2; }, isAvailable: () => player.normalFreezeLevel > 0, reqText: "CRYSTAL FREEZE 習得" }
+        ];
+
+        function logStatusToConsole() {
+            console.log(`%c=== WEAPON_SYS_INFO (PHASE ${level}) ===`, "color: #00f0ff; font-weight: bold;");
+            console.log(`SHOT_MATRIX >> BURST[${player.normalBurst}] ✕ SPREAD[${player.normalSpread}] (MAX: B[${player.maxBurst}]✕S[${player.maxSpread}])`);
+            console.log(`COOL_DOWN   >> NORMAL:[${player.normalCooldownMax}F] MAX_CHARGE:[${player.cooldownMax}F]`);
+            console.log(`STATUS_PROB >> KB:[${Math.round(player.kbChance*100)}%/Lv${player.normalKnockbackLevel}] PS:[${Math.round(player.psChance*100)}%/Lv${player.normalPoisonLevel}] EL:[${Math.round(player.elChance*100)}%/Lv${player.normalElectricLevel}] FR:[${Math.round(player.frChance*100)}%/Lv${player.normalFreezeLevel}]`);
+            console.log(`----------------------------------------`);
+        }
+
+        function saveBestScore() {
+            try { localStorage.setItem('cyber_bow_best_score', bestScore); } catch (e) { console.log(e); }
+        }
+
+        function loadBestScore() {
+            try { const saved = localStorage.getItem('cyber_bow_best_score'); bestScore = saved ? parseInt(saved, 10) : 0; } catch (e) { bestScore = 0; }
+        }
+
+        function getEnemyColor(maxHp, type) {
+            if (type === 'final_boss') return '#ff0055';
+            if (type === 'mid_boss') return '#ffaa00';
+            if (type === 'shield') return '#e0e0e0'; 
+            if (type === 'neon_glitch' || type === 'composite_glitch') return '#00ffcc'; 
+            if (type === 'shell_core') return '#ffffff'; 
+            if (maxHp <= 10) return '#00ff66';
+            if (maxHp <= 20) return '#00f0ff';
+            if (maxHp <= 30) return '#bd00ff';
+            return '#ff00aa';
+        }
+
+        function useBomb() {
+            if (bombCount <= 0 || gameState !== 'playing') return;
+            bombCount--;
+            bombFlashTimer = 15; 
+            for (let e of enemies) { e.hp = 0; e.killedByNormal = false; }
+            createParticles(V_WIDTH / 2, V_HEIGHT / 2, '#ff3366', 50);
+            for (let i = 0; i < 8; i++) {
+                let bx = Math.random() * V_WIDTH;
+                let by = Math.random() * (V_HEIGHT - 150) + 50;
+                createParticles(bx, by, '#00ffff', 20);
+                createParticles(bx, by, '#ff00ff', 20);
+            }
+        }
+
+        canvas.addEventListener('pointerdown', (e) => {
+            if (gameState !== 'playing') return;
+            const rect = canvas.getBoundingClientRect();
+            const clickX = (e.clientX - rect.left) * (V_WIDTH / rect.width);
+            const clickY = (e.clientY - rect.top) * (V_HEIGHT / rect.height);
+            if (clickX >= 280 && clickX <= 345 && clickY >= 580 && clickY <= 625) { useBomb(); return; }
+            isDragging = true;
+            startPoint.x = clickX; startPoint.y = clickY;
+            currentPoint = { ...startPoint };
+        });
+
+        canvas.addEventListener('pointermove', (e) => {
+            if (!isDragging || gameState !== 'playing') return;
+            const rect = canvas.getBoundingClientRect();
+            currentPoint.x = (e.clientX - rect.left) * (V_WIDTH / rect.width);
+            currentPoint.y = (e.clientY - rect.top) * (V_HEIGHT / rect.height);
+            let dx = currentPoint.x - startPoint.x; let dy = currentPoint.y - startPoint.y;
+            let dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist > 5) player.angle = Math.atan2(-dy, -dx);
+        });
+
+        canvas.addEventListener('pointerup', () => {
+            if (!isDragging || gameState !== 'playing') return;
+            isDragging = false;
+            if (player.cooldownTimer > 0) { chargeValue = 0; return; }
+            let dx = startPoint.x - currentPoint.x; let dy = startPoint.y - currentPoint.y;
+            let dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist > 15) {
+                let angle = Math.atan2(dy, dx);
+                let isMax = chargeValue >= 100;
+                let damage = player.baseDamage + (isMax ? 3 : Math.floor(chargeValue / 40));
+                let size = isMax ? 14 : 6 + (chargeValue / 20);
+                let burstCount = isMax ? player.maxBurst : player.normalBurst;
+                let spreadCount = isMax ? player.maxSpread : player.normalSpread;
+
+                for (let b = 0; b < burstCount; b++) {
+                    player.shotQueue.push({
+                        delay: b * 6, isMax: isMax, angle: angle, damage: damage, size: size, spreadCount: spreadCount
+                    });
+                }
+                if (isMax) { player.cooldownTimer = player.cooldownMax + (burstCount * 5); } 
+                else { player.cooldownTimer = Math.max(0, player.normalCooldownMax); }
+            }
+            chargeValue = 0;
+        });
+
+        function gameLoop() {
+            gameFrame++; update(); render(); requestAnimationFrame(gameLoop);
+        }
+
+        function update() {
+            if (gameState !== 'playing') return;
+            if (bombFlashTimer > 0) bombFlashTimer--;
+
+            for (let i = lightningLines.length - 1; i >= 0; i--) {
+                lightningLines[i].timer--;
+                if (lightningLines[i].timer <= 0) lightningLines.splice(i, 1);
+            }
+
+            if (gameFrame % 60 === 0) {
+                remainingTime--;
+                if (remainingTime <= 0) { remainingTime = 0; endGame('clear'); }
+                let elapsed = 600 - remainingTime;
+                if (elapsed === 118 || elapsed === 238 || elapsed === 358) { bossWarningTimer = 120; bossToSpawn = 'mid_boss'; }
+                if (elapsed === 478) { bossWarningTimer = 120; bossToSpawn = 'final_boss'; }
+            }
+
+            if (player.cooldownTimer > 0) player.cooldownTimer--;
+
+            if (isDragging) {
+                let dx = currentPoint.x - startPoint.x; let dy = currentPoint.y - startPoint.y;
+                let dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist > 15 && (player.cooldownTimer <= 0 || chargeValue < 100)) {
+                    chargeValue = Math.min(100, chargeValue + 1.5 * player.chargeSpeed);
+                } else { chargeValue = 0; }
+            }
+
+            if (player.autoExplosionLevel > 0) {
+                player.autoExplosionTimer++;
+                let explosionInterval = Math.max(30, 180 - (player.autoExplosionLevel - 1) * 30);
+                if (player.autoExplosionTimer >= explosionInterval) {
+                    player.autoExplosionTimer = 0;
+                    let ex = Math.random() * V_WIDTH;
+                    let ey = Math.random() * (V_HEIGHT - 180) + 40;
+                    if (enemies.length > 0) {
+                        let target = enemies[Math.floor(Math.random() * enemies.length)];
+                        ex = target.x; ey = target.y;
+                    }
+                    let radius = 50 + (player.autoExplosionLevel - 1) * 20;
+                    let expDmg = player.baseDamage * 2; 
+
+                    meteors.push({
+                        startX: ex - 100, startY: ey - 150,
+                        targetX: ex, targetY: ey,
+                        x: ex - 100, y: ey - 150,
+                        progress: 0, speed: 0.08, 
+                        radius: radius, damage: expDmg
+                    });
+                }
+            }
+
+            for (let i = meteors.length - 1; i >= 0; i--) {
+                let m = meteors[i];
+                m.progress += m.speed;
+                m.x = m.startX + (m.targetX - m.startX) * m.progress;
+                m.y = m.startY + (m.targetY - m.startX) * m.progress; // 元コードのまま
+
+                if (gameFrame % 2 === 0) {
+                    particles.push({
+                        x: m.x, y: m.y,
+                        vx: (Math.random() - 0.5) * 1, vy: (Math.random() - 0.5) * 1,
+                        color: Math.random() < 0.5 ? '#ff3300' : '#ff9900', alpha: 0.8, decay: 0.05, size: Math.random() * 3 + 1
+                    });
+                }
+
+                if (m.progress >= 1.0) {
+                    let ex = m.targetX;
+                    let ey = m.targetY;
+
+                    blastCircles.push({ x: ex, y: ey, currentRadius: 0, maxRadius: m.radius, alpha: 1.0, color: 'rgba(255, 85, 0, ', shadow: '#ff5500' });
+
+                    for (let p = 0; p < 25; p++) {
+                        let ang = (p / 25) * Math.PI * 2;
+                        let spd = Math.random() * 3 + 2;
+                        particles.push({
+                            x: ex, y: ey,
+                            vx: Math.cos(ang) * spd, vy: Math.sin(ang) * spd,
+                            color: '#ff5500', alpha: 1, decay: 0.03, size: Math.random() * 4 + 2
+                        });
+                    }
+
+                    for (let other of enemies) {
+                        let mex = ex - other.x;
+                        let mey = ey - other.y;
+                        let d = Math.sqrt(mex * mex + mey * mey);
+                        if (d < other.size + m.radius) {
+                            if (other.type === 'shield') continue;
+                            if (other.type === 'composite_glitch' && other.shieldHp > 0) continue;
+                            if (other.type === 'shell_core' && other.shellHp > 0) continue; 
+                            other.hp -= m.damage;
+                            other.killedByNormal = true;
+                            
+                            // ボスモンスターなら自動爆発によるノックバックも無効化
+                            let isOtherBoss = (other.type === 'mid_boss' || other.type === 'final_boss');
+                            if (!isOtherBoss) other.knockback = 4;
+                        }
+                    }
+                    meteors.splice(i, 1);
+                }
+            }
+
+            for (let i = blastCircles.length - 1; i >= 0; i--) {
+                let c = blastCircles[i];
+                c.currentRadius += (c.maxRadius - c.currentRadius) * 0.25; 
+                c.alpha -= 0.06;
+                if (c.alpha <= 0 || c.currentRadius >= c.maxRadius - 1) {
+                    blastCircles.splice(i, 1);
+                }
+            }
+
+            for (let i = player.shotQueue.length - 1; i >= 0; i--) {
+                let q = player.shotQueue[i];
+                if (q.delay <= 0) {
+                    let N = q.spreadCount; let angleStep = 0.15;
+                    for (let s = 0; s < N; s++) {
+                        let finalAngle = q.angle;
+                        if (N > 1) finalAngle = q.angle + (s - (N - 1) / 2) * angleStep;
+                        let pierceCap = 1;
+                        if (q.isMax) { pierceCap = 2 + player.pierceBonus; } 
+
+                        arrows.push({
+                            x: player.x, y: player.y,
+                            vx: Math.cos(finalAngle) * player.arrowSpeed, vy: Math.sin(finalAngle) * player.arrowSpeed,
+                            damage: q.damage, size: q.size, angle: finalAngle, isMax: q.isMax, pierce: pierceCap
+                        });
+                    }
+                    createParticles(player.x, player.y, q.isMax ? '#ffd700' : '#00f0ff', 6);
+                    player.shotQueue.splice(i, 1);
+                } else { q.delay--; }
+            }
+
+            if (score > bestScore) { bestScore = score; saveBestScore(); }
+
+            // 🟢 状態異常タイマー更新ループ
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                let e = enemies[i];
+                let isBoss = (e.type === 'mid_boss' || e.type === 'final_boss');
+                
+                // 【新規追加】ボスなら状態異常タイマーを安全のために常時リセット
+                if (isBoss) {
+                    e.poisonTimer = 0;
+                    e.freezeTimer = 0;
+                    e.knockback = 0;
+                    continue;
+                }
+
+                if (e.poisonTimer > 0) {
+                    e.poisonTimer--;
+                    if (e.poisonTimer % 20 === 0) {
+                        e.hp -= e.poisonLevel * 2; e.killedByNormal = true;
+                        createParticles(e.x, e.y, '#bd00ff', 3);
+                    }
+                    if (Math.random() < 0.15) {
+                        particles.push({
+                            x: e.x + (Math.random() - 0.5) * e.size,
+                            y: e.y + (Math.random() - 0.5) * e.size,
+                            vx: (Math.random() - 0.5) * 0.4,
+                            vy: -Math.random() * 0.6 - 0.2,
+                            color: '#bd00ff', alpha: 0.7, decay: 0.04, size: Math.random() * 2 + 1
+                        });
+                    }
+                }
+                if (e.freezeTimer > 0) e.freezeTimer--;
+            }
+
+            // 🟢 敵のHP・移動処理ループ
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                let e = enemies[i];
+                if (e.hp <= 0) {
+                    let isBoss = (e.type === 'mid_boss' || e.type === 'final_boss');
+                    createParticles(e.x, e.y, getEnemyColor(e.maxHp, e.type), isBoss ? 40 : 18);
+                    let xpGained = e.type === 'final_boss' ? 25 : (e.type === 'mid_boss' ? 10 : (e.type === 'composite_glitch' || e.type === 'shell_core' ? 3 : 1));
+                    xpGained += player.normalXpBonus;
+                    gainXp(xpGained);
+                    let baseScoreVal = e.type === 'final_boss' ? 10000 : (e.type === 'mid_boss' ? 4000 : 120);
+                    score += baseScoreVal * (remainingTime <= 300 ? e.maxHp / 10 : e.maxHp); 
+                    enemies.splice(i, 1);
+                    continue;
+                }
+
+                let isBoss = (e.type === 'mid_boss' || e.type === 'final_boss');
+                if (e.knockback > 0) { e.y -= isBoss ? 0.0 : 1.5; e.knockback--; } // ボスなら一切後退しない (0.0)
+                else if (e.freezeTimer <= 0) {
+                    e.y += e.speed;
+                    e.x += Math.sin(gameFrame * 0.02 + e.seed) * (isBoss ? 0.1 : 0.3);
+                }
+
+                if (e.y >= DEAD_LINE_Y) {
+                    let dmg = e.type === 'final_boss' ? 3 : (e.type === 'mid_boss' ? 2 : 1);
+                    player.life -= dmg;
+                    createParticles(e.x, DEAD_LINE_Y, '#ff3333', 20);
+                    enemies.splice(i, 1);
+                    if (player.life <= 0) endGame('failed');
+                    continue;
+                }
+            }
+
+            if (bossWarningTimer > 0) {
+                bossWarningTimer--;
+                if (bossWarningTimer === 0 && bossToSpawn) {
+                    let hpMult = remainingTime <= 300 ? 10 : 1;
+                    if (bossToSpawn === 'mid_boss') {
+                        let bHp = (level * 15 + 40) * hpMult;
+                        enemies.push({
+                            type: 'mid_boss', x: V_WIDTH / 2, y: -40, hp: bHp, maxHp: bHp,
+                            speed: 0.3, size: 32, seed: Math.random() * 100, knockback: 0, poisonTimer: 0, poisonLevel: 0, freezeTimer: 0, killedByNormal: false
+                        });
+                    } else if (bossToSpawn === 'final_boss') {
+                        let bHp = (level * 30 + 120) * hpMult * 1.2;
+                        enemies.push({
+                            type: 'final_boss', x: V_WIDTH / 2, y: -50, hp: bHp, maxHp: bHp,
+                            speed: 0.2, size: 45, seed: Math.random() * 100, knockback: 0, poisonTimer: 0, poisonLevel: 0, freezeTimer: 0, killedByNormal: false
+                        });
+                    }
+                    bossToSpawn = null;
+                }
+            }
+
+            spawnTimer++;
+            if (spawnTimer >= spawnInterval && bossWarningTimer === 0) {
+                spawnTimer = 0;
+                let hpMult = remainingTime <= 300 ? 1.5 : 1;
+                
+                let enemyType = 'normal';
+                let rand = Math.random();
+
+                if (remainingTime <= 300) {
+                    let specialPool = [];
+                    if (level >= 2) specialPool.push('shield', 'neon_glitch');
+                    if (level >= 3) specialPool.push('composite_glitch', 'shell_core');
+                    if (specialPool.length === 0) specialPool.push('shield'); 
+                    
+                    enemyType = specialPool[Math.floor(Math.random() * specialPool.length)];
+                } else {
+                    if (level >= 2 && rand < 0.10) enemyType = 'shield';
+                    else if (level >= 2 && rand >= 0.10 && rand < 0.20) enemyType = 'neon_glitch';
+                    else if (level >= 3 && rand >= 0.20 && rand < 0.32) enemyType = 'composite_glitch';
+                    else if (level >= 3 && rand >= 0.32 && rand < 0.44) enemyType = 'shell_core';
+                    else enemyType = 'normal';
+                }
+
+                if (enemyType === 'shield') {
+                    let enemyHp = (Math.floor(Math.random() * level) + 1) * hpMult;
+                    enemies.push({
+                        type: 'shield', x: Math.random() * (V_WIDTH - 60) + 30, y: -30, hp: enemyHp,
+                        maxHp: enemyHp, speed: 0.7, size: 18, seed: Math.random() * 100, knockback: 0, poisonTimer: 0, poisonLevel: 0, freezeTimer: 0, killedByNormal: false
+                    });
+                } else if (enemyType === 'neon_glitch') {
+                    let enemyHp = (Math.floor(Math.random() * Math.min(level, 4)) + 1) * hpMult;
+                    enemies.push({
+                        type: 'neon_glitch', x: Math.random() * (V_WIDTH - 60) + 30, y: -30, hp: enemyHp,
+                        maxHp: enemyHp, speed: 0.65, size: 16, seed: Math.random() * 100, knockback: 0, poisonTimer: 0, poisonLevel: 0, freezeTimer: 0, killedByNormal: false
+                    });
+                } else if (enemyType === 'composite_glitch') {
+                    let enemyHp = Math.floor(Math.random() * Math.min(level, 3)) + 1;
+                    let sHp = Math.floor(Math.random() * Math.min(level, 2)) + 1;
+                    enemyHp *= hpMult; sHp *= hpMult; 
+                    enemies.push({
+                        type: 'composite_glitch', x: Math.random() * (V_WIDTH - 60) + 30, y: -30, hp: enemyHp,
+                        maxHp: enemyHp, shieldHp: sHp, maxShieldHp: sHp, speed: 0.5, size: 16, seed: Math.random() * 100, knockback: 0, poisonTimer: 0, poisonLevel: 0, freezeTimer: 0, killedByNormal: false
+                    });
+                } else if (enemyType === 'shell_core') {
+                    let enemyHp = Math.floor(Math.random() * Math.min(level, 2)) + 1; 
+                    let sHp = Math.floor(Math.random() * Math.min(level, 3)) + 1;     
+                    enemyHp *= hpMult; sHp *= hpMult; 
+                    enemies.push({
+                        type: 'shell_core', x: Math.random() * (V_WIDTH - 60) + 30, y: -30, hp: enemyHp,
+                        maxHp: enemyHp, shellHp: sHp, maxShieldHp: sHp, speed: 0.45, size: 16, seed: Math.random() * 100, knockback: 0, poisonTimer: 0, poisonLevel: 0, freezeTimer: 0, killedByNormal: false
+                    });
+                } else {
+                    let enemyHp = Math.floor(Math.random() * (level)) + 1;
+                    let baseSize = Math.random() * 5 + 13 + (enemyHp * 2); 
+                    let finalSpeed = Math.random() * 0.4 + 0.6 + (level * 0.05) - (enemyHp * 0.03);
+                    if (finalSpeed < 0.4) finalSpeed = 0.4;
+                    enemyHp *= hpMult;
+                    enemies.push({
+                        type: 'normal', x: Math.random() * (V_WIDTH - 60) + 30, y: -30, hp: enemyHp,
+                        maxHp: enemyHp, speed: finalSpeed, size: baseSize, seed: Math.random() * 100, knockback: 0, poisonTimer: 0, poisonLevel: 0, freezeTimer: 0, killedByNormal: false
+                    });
+                }
+                if (spawnInterval > 45) spawnInterval -= 1;
+            }
+
+            for (let i = arrows.length - 1; i >= 0; i--) {
+                let a = arrows[i]; a.x += a.vx; a.y += a.vy;
+                if (a.x < -20 || a.x > V_WIDTH + 20 || a.y < -20 || a.y > V_HEIGHT + 20) arrows.splice(i, 1);
+            }
+
+            // 🟢 矢と敵の衝突判定ループ
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                let e = enemies[i];
+                for (let j = arrows.length - 1; j >= 0; j--) {
+                    let a = arrows[j];
+                    let edx = e.x - a.x;
+                    let edy = e.y - a.y;
+                    let dist = Math.sqrt(edx * edx + edy * edy);
+                    if (dist < e.size + a.size) {
+                        if (e.type === 'shield' && !a.isMax) { createParticles(a.x, a.y, '#ffffff', 8); arrows.splice(j, 1); continue; }
+                        if (e.type === 'neon_glitch' && a.isMax) { createParticles(a.x, a.y, '#ffd700', 8); arrows.splice(j, 1); continue; }
+                        if (e.type === 'composite_glitch') {
+                            if (e.shieldHp > 0) {
+                                if (!a.isMax) { createParticles(a.x, a.y, '#ffffff', 8); arrows.splice(j, 1); continue; }
+                                e.shieldHp -= a.damage; createParticles(a.x, a.y, '#ffffff', 10);
+                                if (e.shieldHp <= 0) createParticles(e.x, e.y, '#ffff00', 25); 
+                                arrows.splice(j, 1); break;
+                            } else {
+                                if (a.isMax) { createParticles(a.x, a.y, '#ffd700', 8); arrows.splice(j, 1); continue; }
+                            }
+                        }
+                        if (e.type === 'shell_core') {
+                            if (e.shellHp > 0) {
+                                if (a.isMax) { createParticles(a.x, a.y, '#ffd700', 8); arrows.splice(j, 1); continue; }
+                                e.shellHp -= a.damage; createParticles(a.x, a.y, '#00ffcc', 10);
+                                if (e.shellHp <= 0) createParticles(e.x, e.y, '#ffffff', 25); 
+                                arrows.splice(j, 1); break; 
+                            } else {
+                                if (!a.isMax) { createParticles(a.x, a.y, '#00f0ff', 8); arrows.splice(j, 1); continue; }
+                            }
+                        }
+
+                        e.hp -= a.damage;
+                        let isBoss = (e.type === 'mid_boss' || e.type === 'final_boss');
+                        e.knockback = isBoss ? 0 : 4; // 【変更】ボスなら被弾時の微ノックバックも0にする
+                        if (e.type === 'shield') a.pierce = 0; 
+
+                        if (!a.isMax) {
+                            e.killedByNormal = true;
+                            
+                            // 🌟【変更点】ボスではない場合のみ、以下の状態異常付与を判定する
+                            if (!isBoss) {
+                                // インパクトウェーブ (ノックバック拡散)
+                                if (player.normalKnockbackLevel > 0 && Math.random() < player.kbChance) {
+                                    let kbRadius = player.normalKnockbackLevel * 70; createParticles(e.x, e.y, '#ffffff', 5);
+                                    blastCircles.push({ x: e.x, y: e.y, currentRadius: 0, maxRadius: kbRadius, alpha: 1.0, color: 'rgba(255, 255, 255, ', shadow: '#ffffff' });
+                                    for (let other of enemies) {
+                                        if(other.type === 'mid_boss' || other.type === 'final_boss') continue;
+                                        let ekdx = e.x - other.x;
+                                        let ekdy = e.y - other.y;
+                                        let d = Math.sqrt(ekdx * ekdx + ekdy * ekdy);
+                                        if (d < kbRadius) { other.knockback = 20; other.y -= 10; }
+                                    }
+                                }
+                                // バイオハザード (毒)
+                                if (player.normalPoisonLevel > 0 && Math.random() < player.psChance) { e.poisonTimer = 140; e.poisonLevel = player.normalPoisonLevel; }
+                                // ライトニングストーム (雷連鎖)
+                                if (player.normalElectricLevel > 0 && Math.random() < player.elChance) {
+                                    createParticles(e.x, e.y, '#ffff00', 8);
+                                    let eleRadius = 80; 
+                                    for (let other of enemies) {
+                                        if (other === e) continue;
+                                        // 雷の連鎖先からもボスを除外
+                                        if (other.type === 'mid_boss' || other.type === 'final_boss') continue;
+                                        let eedx = e.x - other.x;
+                                        let eedy = e.y - other.y;
+                                        let d = Math.sqrt(eedx * eedx + eedy * eedy);
+                                        if (d < eleRadius) { 
+                                            other.hp -= player.normalElectricLevel * 2; 
+                                            other.killedByNormal = true; 
+                                            createParticles(other.x, other.y, '#ffff00', 3); 
+                                            lightningLines.push({ fromX: e.x, fromY: e.y, toX: other.x, toY: other.y, timer: 12 });
+                                        }
+                                    }
+                                }
+                                // ブリザードチル (凍結)
+                                if (player.normalFreezeLevel > 0 && Math.random() < player.frChance) { e.freezeTimer = player.normalFreezeLevel * 120; }
+                            }
+                        } else { e.killedByNormal = false; }
+
+                        createParticles(a.x, a.y, getEnemyColor(e.maxHp, e.type), a.isMax ? 10 : 4);
+                        a.pierce--;
+                        if (a.pierce <= 0) arrows.splice(j, 1);
+                        if (e.hp <= 0) break; 
+                    }
+                }
+            }
+
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.x += p.vx; 
+                p.y += p.vy; 
+                p.alpha -= p.decay;
+                if (p.alpha <= 0) particles.splice(i, 1);
+            }
+        }
+
+        function createParticles(x, y, color, count) {
+            for (let i = 0; i < count; i++) {
+                let angle = Math.random() * Math.PI * 2; let speed = Math.random() * 3 + 1;
+                particles.push({
+                    x: x, y: y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+                    color: color, alpha: 1, decay: Math.random() * 0.03 + 0.02, size: Math.random() * 2 + 1
+                });
+            }
+        }
+
+        function gainXp(amount) {
+            xp += amount;
+            if (xp >= nextXp) {
+                xp -= nextXp; level++; nextXp = Math.ceil(nextXp * 1.35) + 2; 
+                triggerLevelUp();
+            }
+        }
+
+        // 🌳 スキルツリー画面（ドラッグ・パン変数）
+        let treePanX = -30, treePanY = -50, treeZoom = 0.85; 
+        let isTreeDragging = false;
+        let treeDragStart = { x: 0, y: 0 };
+        let activeDialogSkill = null; 
+
+        function triggerLevelUp() {
+            gameState = 'levelup';
+            isDragging = false;
+            chargeValue = 0;
+            player.skillPoints += 2;
+            document.getElementById('upgrade-screen').style.display = 'flex';
+            
+            // 🌳 開いたときに中央コア(1000, 1000)が画面の真ん中に来るよう自動計算
+            const viewport = document.getElementById('skill-tree-viewport');
+            const vpw = viewport.clientWidth || 400;
+            const vph = viewport.clientHeight || 400;
+            
+            treeZoom = 0.85; // 見やすい初期ズーム倍率
+            treePanX = vpw / 2 - 1000 * treeZoom;
+            treePanY = vph / 2 - 1000 * treeZoom;
+            applyTreeTransform();
+
+            updateUpgradeUI();
+
+            const applyBtn = document.getElementById('apply-btn');
+            applyBtn.onclick = () => {
+                document.getElementById('upgrade-screen').style.display = 'none';
+                closeSkillDialog();
+                gameState = 'playing';
+                logStatusToConsole();
+            };
+        }
+
+        // 🌳 2Dグラフィカルスキルツリーの動的ノード生成・接続線描画
+        function updateUpgradeUI() {
+            const wrapper = document.getElementById('skill-tree-wrapper');
+            const svgOverlay = document.getElementById('skill-tree-canvas-overlay');
+            const spHud = document.getElementById('upgrade-sp-hud');
+            
+            spHud.innerText = `[ SKILL POINT (SP): ${player.skillPoints} ]`;
+            if (player.skillPoints > 0) spHud.style.color = "#00ffcc";
+            else spHud.style.color = "#666";
+
+            // 一旦クリア
+            wrapper.innerHTML = '';
+            svgOverlay.innerHTML = '';
+            // ズーム・パンと線を同期させるため、SVGをwrapperに結合
+            wrapper.appendChild(svgOverlay);
+
+            // 1. コネクター線の描画
+            SKILL_TREE.forEach(skill => {
+                if (skill.parentId) {
+                    const parent = SKILL_TREE.find(s => s.id === skill.parentId);
+                    if (parent) {
+                        let node_center = 60;
+                        let x1 = parent.x + node_center; // 76pxノードの中心
+                        let y1 = parent.y + node_center;
+                        let x2 = skill.x + node_center;
+                        let y2 = skill.y + node_center;
+
+                        let line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                        line.setAttribute('x1', x1);
+                        line.setAttribute('y1', y1);
+                        line.setAttribute('x2', x2);
+                        line.setAttribute('y2', y2);
+
+                        let parentMastered = isSkillMastered(parent);
+                        let childMastered = isSkillMastered(skill);
+
+                        if (parentMastered && childMastered) {
+                            line.setAttribute('stroke', '#ffd700');
+                            line.setAttribute('stroke-width', '2');
+                            line.setAttribute('style', 'filter: drop-shadow(0px 0px 3px #ffd700); opacity: 0.85;');
+                        } else if (parentMastered && skill.isAvailable()) {
+                            line.setAttribute('stroke', '#00ffcc');
+                            line.setAttribute('stroke-width', '1.5');
+                            line.setAttribute('stroke-dasharray', '4,3');
+                            line.setAttribute('style', 'opacity: 0.7;');
+                        } else {
+                            line.setAttribute('stroke', 'rgba(68, 68, 102, 0.4)');
+                            line.setAttribute('stroke-width', '1');
+                        }
+                        svgOverlay.appendChild(line);
+                    }
+                }
+            });
+
+            // 2. 円形ノード要素の配置
+            SKILL_TREE.forEach(skill => {
+                let node = document.createElement('div');
+                node.className = 'skill-node';
+                node.style.left = skill.x + 'px';
+                node.style.top = skill.y + 'px';
+
+                let mastered = isSkillMastered(skill);
+                let available = skill.isAvailable();
+
+                if (mastered) {
+                    node.classList.add('mastered');
+                } else if (!available) {
+                    node.classList.add('locked');
+                } else {
+                    node.classList.add('available-learn');
+                }
+
+                node.innerHTML = `
+                    <div class="node-name">${skill.short}</div>
+                    <div class="node-status">${skill.status()}</div>
+                `;
+
+                node.onclick = () => openSkillDialog(skill);
+                wrapper.appendChild(node);
+            });
+        }
+
+        function endGame(status) {
+            gameState = status === 'clear' ? 'gameclear' : 'gameover';
+            if (score > bestScore) { bestScore = score; saveBestScore(); }
+            const screenId = status === 'clear' ? 'gameclear-screen' : 'gameover-screen';
+            const textId = status === 'clear' ? 'clear-score' : 'final-score';
+            const label = status === 'clear' ? 'SURVIVED' : 'FINAL';
+            document.getElementById(screenId).style.display = 'flex';
+            document.getElementById(textId).innerHTML = `${label} SCORE: ${score} [PHASE ${level}]<br><span style="font-size: 15px; color: #ffd700; display: inline-block; margin-top: 8px;">🏆 BEST SCORE: ${bestScore}</span>`;
+        }
+
+        // 🌳 ビューポートのドラッグ・スクロール初期化処理
+        function initSkillTreeDragPan() {
+            const viewport = document.getElementById('skill-tree-viewport');
+
+            const startDrag = (x, y) => {
+                if (gameState !== 'levelup') return;
+                isTreeDragging = true;
+                treeDragStart.x = x - treePanX;
+                treeDragStart.y = y - treePanY;
+            };
+            const moveDrag = (x, y) => {
+                if (!isTreeDragging) return;
+                treePanX = x - treeDragStart.x;
+                treePanY = y - treeDragStart.y;
+                // キャンバスのスクロール限界制御
+                treePanX = Math.max(-1400, Math.min(100, treePanX));
+                treePanY = Math.max(-1400, Math.min(100, treePanY));
+                applyTreeTransform();
+            };
+            const stopDrag = () => { isTreeDragging = false; };
+
+            viewport.addEventListener('mousedown', (e) => { if(e.target.closest('.skill-node')) return; startDrag(e.clientX, e.clientY); });
+            window.addEventListener('mousemove', (e) => moveDrag(e.clientX, e.clientY));
+            window.addEventListener('mouseup', stopDrag);
+
+            viewport.addEventListener('touchstart', (e) => {
+                if(e.target.closest('.skill-node')) return;
+                if(e.touches.length === 1) startDrag(e.touches[0].clientX, e.touches[0].clientY);
+            }, { passive: true });
+            window.addEventListener('touchmove', (e) => {
+                if(e.touches.length === 1) moveDrag(e.touches[0].clientX, e.touches[0].clientY);
+            }, { passive: false });
+            window.addEventListener('touchend', stopDrag);
+
+            // マウスホイールでのズームイン・アウト
+            viewport.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                let zoomFactor = e.deltaY < 0 ? 1.05 : 0.95;
+                treeZoom = Math.max(0.5, Math.min(1.5, treeZoom * zoomFactor));
+                applyTreeTransform();
+            }, { passive: false });
+
+            applyTreeTransform();
+
+            // モーダルダイアログ内のボタン挙動のバインド
+            document.getElementById('dialog-cancel-btn').onclick = closeSkillDialog;
+            document.getElementById('dialog-confirm-btn').onclick = purchaseSkill;
+        }
+
+        function applyTreeTransform() {
+            const wrapper = document.getElementById('skill-tree-wrapper');
+            if(wrapper) {
+                wrapper.style.transform = `translate(${treePanX}px, ${treePanY}px) scale(${treeZoom})`;
+            }
+        }
+
+        // 各スキル状態（解放済み、上限到達など）の判定補助
+        function isSkillMastered(skill) {
+            if (skill.id === 'core') return true; // 🌐 中心コアは最初から常時解放状態にする
+            if (skill.id === 'dmg' && player.baseDamage > 1) return true;
+            if (skill.id === 'chg' && player.chargeSpeed > 1) return true;
+            if (skill.id === 'n_cooldown' && player.normalCooldownMax < 30) return true;
+            if (skill.id === 'pierce' && player.pierceBonus > 0) return true;
+            if (skill.id === 'n_burst' && player.normalBurst > 1) return true;
+            if (skill.id === 'n_spread' && player.normalSpread > 1) return true;
+            if (skill.id === 'm_burst' && player.maxBurst > 1) return true;
+            if (skill.id === 'm_spread' && player.maxSpread > 1) return true;
+            if (skill.id === 'maxlife' && player.maxLife > 3) return true;
+            if (skill.id === 'heal' && player.life === player.maxLife) return false; // 回復は何度でも実行可能にするためmasteredにしない
+            if (skill.id === 'spd' && player.arrowSpeed > 8) return true;
+            if (skill.id === 'n_xp' && player.normalXpBonus > 0) return true;
+            if (skill.id === 'auto_exp' && player.autoExplosionLevel > 0) return true;
+            if (skill.id === 'n_kb' && player.normalKnockbackLevel > 0) return true;
+            if (skill.id === 'kb_chance' && player.kbChance > 0.30) return true;
+            if (skill.id === 'n_ps' && player.normalPoisonLevel > 0) return true;
+            if (skill.id === 'ps_chance' && player.psChance > 0.30) return true;
+            if (skill.id === 'n_el' && player.normalElectricLevel > 0) return true;
+            if (skill.id === 'el_chance' && player.elChance > 0.30) return true;
+            if (skill.id === 'n_fr' && player.normalFreezeLevel > 0) return true;
+            if (skill.id === 'fr_chance' && player.frChance > 0.30) return true;
+            return false;
+        }
+
+        // ダイアログを開く
+        function openSkillDialog(skill) {
+            activeDialogSkill = skill;
+            const overlay = document.getElementById('skill-dialog-overlay');
+            
+            document.getElementById('dialog-skill-cat').innerText = skill.category;
+            document.getElementById('dialog-skill-name').innerText = skill.short;
+            document.getElementById('dialog-skill-status').innerText = skill.id === 'core' ? 'STATUS: ONLINE' : `CURRENT: ${skill.status()}`;
+            document.getElementById('dialog-skill-desc').innerHTML = skill.text().replace(/\n/g, '<br>');
+            
+            const reqDiv = document.getElementById('dialog-skill-req');
+            const confirmBtn = document.getElementById('dialog-confirm-btn');
+
+            // 🌐 コアの特別処理（アップグレード不可）
+            if (skill.id === 'core') {
+                reqDiv.innerText = "[ MAIN CORE SYSTEM ]";
+                confirmBtn.className = 'disabled';
+                confirmBtn.innerText = "NOT UPGRADABLE";
+            } else if (!skill.isAvailable()) {
+                reqDiv.innerText = `[🔒 LOCKED: ${skill.reqText}]`;
+                confirmBtn.className = 'disabled';
+                confirmBtn.innerText = "LOCKED";
+            } else if (player.skillPoints < 1) {
+                reqDiv.innerText = "[ NEED 1 SP ]";
+                confirmBtn.className = 'disabled';
+                confirmBtn.innerText = "INSUFFICIENT SP";
+            } else {
+                reqDiv.innerText = "";
+                confirmBtn.className = '';
+                confirmBtn.innerText = "UPGRADE (-1 SP)";
+            }
+
+            overlay.style.display = 'flex';
+        }
+
+        // ダイアログを閉じる
+        function closeSkillDialog() {
+            document.getElementById('skill-dialog-overlay').style.display = 'none';
+            activeDialogSkill = null;
+        }
+
+        // スキルの確定購入
+        function purchaseSkill() {
+            if (!activeDialogSkill) return;
+            if (activeDialogSkill.id === 'core') return; // 🌐 コアは購入不可
+            if (!activeDialogSkill.isAvailable() || player.skillPoints < 1) return;
+
+            player.skillPoints -= 1;
+            activeDialogSkill.action();
+
+            closeSkillDialog();
+            updateUpgradeUI();
+        }
+
+        function resetGame() {
+            score = 0; level = 1; xp = 0; nextXp = 1; remainingTime = 600; bossToSpawn = null;
+            bombCount = 2; bombFlashTimer = 0; 
+            player.life = 3; player.maxLife = 3; player.baseDamage = 1; player.chargeSpeed = 1; player.arrowSpeed = 8;
+            player.angle = -Math.PI / 2; player.pierceBonus = 0; player.cooldownTimer = 0;
+            player.normalCooldownMax = 30; 
+            player.normalBurst = 1; player.maxBurst = 1; player.normalSpread = 1; player.maxSpread = 1; player.shotQueue = [];
+            player.normalKnockbackLevel = 0; player.normalPoisonLevel = 0; player.normalElectricLevel = 0; player.normalFreezeLevel = 0; player.normalXpBonus = 0;
+            player.autoExplosionLevel = 0; player.autoExplosionTimer = 0;
+            player.kbChance = 0.30; player.psChance = 0.30; player.elChance = 0.30; player.frChance = 0.30;
+            player.skillPoints = 0; 
+            selectedSkillId = null; 
+
+            arrows = []; enemies = []; particles = []; meteors = []; blastCircles = []; lightningLines = []; 
+            spawnInterval = 120; spawnTimer = 0; bossWarningTimer = 0;
+            loadBestScore();
+            document.getElementById('gameover-screen').style.display = 'none';
+            document.getElementById('gameclear-screen').style.display = 'none';
+            gameState = 'playing';
+            logStatusToConsole(); 
+        }
+
+        function render() {
+            ctx.clearRect(0, 0, V_WIDTH, V_HEIGHT);
+
+            ctx.strokeStyle = 'rgba(0, 240, 255, 0.03)'; ctx.lineWidth = 1;
+            for(let x = 0; x < V_WIDTH; x += 30) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, V_HEIGHT); ctx.stroke(); }
+            for(let y = 0; y < V_HEIGHT; y += 30) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(V_WIDTH, y); ctx.stroke(); }
+
+            let pulse = Math.sin(gameFrame * 0.1) * 3;
+            ctx.shadowBlur = 10 + pulse; ctx.shadowColor = '#ff3333';
+            ctx.strokeStyle = 'rgba(255, 51, 51, 0.8)'; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.moveTo(0, DEAD_LINE_Y); ctx.lineTo(V_WIDTH, DEAD_LINE_Y); ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            for (let c of blastCircles) {
+                ctx.save();
+                let col = c.color || 'rgba(255, 85, 0, ';
+                let shd = c.shadow || '#ff5500';
+                ctx.strokeStyle = col + `${c.alpha})`;
+                ctx.fillStyle = col + `${c.alpha * 0.15})`;
+                ctx.lineWidth = 2;
+                ctx.shadowBlur = 10; ctx.shadowColor = shd;
+                ctx.beginPath();
+                ctx.arc(c.x, c.y, c.currentRadius, 0, Math.PI * 2);
+                ctx.fill(); ctx.stroke();
+                ctx.restore();
+            }
+
+            for (let line of lightningLines) {
+                ctx.save();
+                ctx.strokeStyle = '#ffff00';
+                ctx.lineWidth = 2;
+                ctx.shadowBlur = 8; ctx.shadowColor = '#ffff00';
+                ctx.beginPath();
+                ctx.moveTo(line.fromX, line.fromY);
+                let midX1 = (line.fromX * 0.6 + line.toX * 0.4) + (Math.random() - 0.5) * 16;
+                let midY1 = (line.fromY * 0.6 + line.toY * 0.4) + (Math.random() - 0.5) * 16;
+                let midX2 = (line.fromX * 0.3 + line.toX * 0.7) + (Math.random() - 0.5) * 16;
+                let midY2 = (line.fromY * 0.3 + line.toY * 0.7) + (Math.random() - 0.5) * 16;
+                ctx.lineTo(midX1, midY1);
+                ctx.lineTo(midX2, midY2);
+                ctx.lineTo(line.toX, line.toY);
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            ctx.save();
+            ctx.translate(player.x, player.y); ctx.rotate(player.angle);
+            let stringPull = (isDragging && player.cooldownTimer <= 0) ? Math.min(25, chargeValue / 4) : 0;
+            let bowColor = player.cooldownTimer > 0 ? '#ff3333' : '#00f0ff';
+            ctx.fillStyle = '#111122'; ctx.strokeStyle = bowColor; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+            ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(10, 0, 25, -Math.PI * 0.65, Math.PI * 0.65); ctx.stroke();
+            ctx.strokeStyle = player.cooldownTimer > 0 ? 'rgba(255, 0, 0, 0.2)' : 'rgba(255, 255, 255, 0.6)'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(10 - 5, -23); ctx.lineTo(-stringPull, 0); ctx.lineTo(10 - 5, 23); ctx.stroke();
+
+            if (isDragging && player.cooldownTimer <= 0) {
+                ctx.fillStyle = chargeValue >= 100 ? '#ffd700' : '#00ffff';
+                ctx.beginPath(); ctx.moveTo(-stringPull + 5, -2); ctx.lineTo(22, -2); ctx.lineTo(26, 0); ctx.lineTo(22, 2); ctx.lineTo(-stringPull + 5, 2);
+                ctx.fill();
+            }
+            ctx.restore();
+
+            if (isDragging && (player.cooldownTimer <= 0 || chargeValue < 100)) {
+                let dx = startPoint.x - currentPoint.x; let dy = startPoint.y - currentPoint.y;
+                ctx.strokeStyle = 'rgba(0, 255, 204, 0.25)'; ctx.setLineDash([6, 6]);
+                ctx.beginPath(); ctx.moveTo(player.x, player.y); ctx.lineTo(player.x + dx * 2, player.y + dy * 2); ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.strokeStyle = '#333'; ctx.lineWidth = 4;
+                ctx.beginPath(); ctx.arc(player.x, player.y + 40, 16, 0, Math.PI*2); ctx.stroke();
+                ctx.strokeStyle = chargeValue >= 100 ? '#ffd700' : '#00ffcc';
+                ctx.beginPath(); ctx.arc(player.x, player.y + 40, 16, -Math.PI/2, (-Math.PI/2) + (Math.PI * 2 * (chargeValue/100)));
+                ctx.stroke();
+            }
+
+            for (let a of arrows) {
+                ctx.save(); ctx.translate(a.x, a.y); ctx.rotate(a.angle);
+                if (a.isMax) {
+                    ctx.shadowBlur = 12; ctx.shadowColor = '#ffd700'; ctx.fillStyle = '#ffd700';
+                    ctx.beginPath(); ctx.arc(0, 0, a.size, -Math.PI*0.4, Math.PI*0.4); ctx.lineTo(-5, 0); ctx.closePath(); ctx.fill();
+                } else {
+                    ctx.shadowBlur = 6; ctx.shadowColor = '#00f0ff'; ctx.fillStyle = '#ffffff';
+                    ctx.beginPath(); ctx.moveTo(a.size * 1.5, 0); ctx.lineTo(-a.size, -a.size * 0.6); ctx.lineTo(-a.size * 0.4, 0); ctx.lineTo(-a.size, a.size * 0.6); ctx.closePath(); ctx.fill();
+                }
+                ctx.restore(); ctx.shadowBlur = 0;
+            }
+
+            for (let m of meteors) {
+                ctx.save();
+                ctx.strokeStyle = 'rgba(255, 51, 0, ' + (0.3 + Math.sin(gameFrame * 0.15) * 0.1) + ')';
+                ctx.fillStyle = 'rgba(255, 51, 0, 0.04)';
+                ctx.lineWidth = 1.5;
+                ctx.setLineDash([4, 4]);
+                ctx.beginPath();
+                ctx.arc(m.targetX, m.targetY, m.radius, 0, Math.PI * 2);
+                ctx.fill(); ctx.stroke();
+                ctx.restore();
+            }
+
+            for (let m of meteors) {
+                ctx.save();
+                ctx.shadowBlur = 15; ctx.shadowColor = '#ff3300';
+                ctx.fillStyle = '#ff5522';
+                ctx.beginPath();
+                ctx.arc(m.x, m.y, 6, 0, Math.PI * 2); 
+                ctx.fill();
+                
+                ctx.fillStyle = 'rgba(255, 100, 0, 0.4)';
+                ctx.beginPath();
+                ctx.moveTo(m.x, m.y);
+                ctx.lineTo(m.x - 15, m.y - 22);
+                ctx.lineTo(m.x - 22, m.y - 15);
+                ctx.closePath(); ctx.fill();
+                ctx.restore();
+            }
+
+            for (let e of enemies) {
+                ctx.save(); ctx.translate(e.x, e.y);
+
+                if (e.poisonTimer > 0) {
+                    ctx.save();
+                    ctx.fillStyle = 'rgba(189, 0, 255, 0.12)';
+                    ctx.beginPath(); ctx.arc(0, 0, e.size * 1.3, 0, Math.PI * 2); ctx.fill();
+                    ctx.restore();
+                }
+
+                if (e.freezeTimer > 0) {
+                    ctx.save();
+                    ctx.strokeStyle = '#00ffff';
+                    ctx.fillStyle = 'rgba(0, 255, 204, 0.2)';
+                    ctx.lineWidth = 1.5;
+                    ctx.shadowBlur = 6; ctx.shadowColor = '#00ffff';
+                    ctx.beginPath();
+                    for (let i = 0; i < 6; i++) {
+                        let angle = i * Math.PI / 3;
+                        ctx.lineTo(Math.cos(angle) * (e.size * 1.25), Math.sin(angle) * (e.size * 1.25));
+                    }
+                    ctx.closePath(); ctx.fill(); ctx.stroke();
+                    ctx.restore();
+                }
+
+                let eColor = getEnemyColor(e.maxHp, e.type);
+                if (e.freezeTimer > 0) eColor = '#00ffff'; else if (e.poisonTimer > 0) eColor = '#bd00ff';
+                ctx.fillStyle = e.knockback > 0 ? '#ffffff' : '#100518'; ctx.strokeStyle = eColor;
+                let isBoss = (e.type === 'mid_boss' || e.type === 'final_boss'); ctx.lineWidth = isBoss ? 4 : 2;
+
+                if (isBoss) {
+                    ctx.shadowBlur = 15; ctx.shadowColor = eColor; ctx.beginPath();
+                    let spikes = e.type === 'final_boss' ? 16 : 10; let rot = (gameFrame * 0.005) + e.seed;
+                    for (let i = 0; i < spikes; i++) {
+                        ctx.lineTo(Math.cos(rot) * e.size, Math.sin(rot) * e.size); rot += Math.PI / spikes;
+                        ctx.lineTo(Math.cos(rot) * (e.size * 0.7), Math.sin(rot) * (e.size * 0.7)); rot += Math.PI / spikes;
+                    }
+                    ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.strokeStyle = '#ffffff';
+                    ctx.beginPath(); ctx.arc(0, 0, e.size * 0.4, 0, Math.PI*2); ctx.stroke();
+                } else if (e.type === 'shield') {
+                    ctx.shadowBlur = 8; ctx.shadowColor = '#ffffff'; ctx.beginPath();
+                    ctx.moveTo(0, -e.size * 1.3); ctx.lineTo(e.size * 1.1, 0); ctx.lineTo(0, e.size * 1.3); ctx.lineTo(-e.size * 1.1, 0);
+                    ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.strokeStyle = '#ffffff'; ctx.strokeRect(-e.size*0.4, -e.size*0.4, e.size*0.8, e.size*0.8);
+                } else if (e.type === 'neon_glitch') {
+                    ctx.shadowBlur = 8; ctx.shadowColor = '#00ffcc'; ctx.strokeRect(-e.size*0.8, -e.size*0.8, e.size*1.6, e.size*1.6);
+                    ctx.fillStyle = '#00ffcc'; ctx.fillRect(-e.size*0.3, -e.size*0.3, e.size*0.6, e.size*0.6);
+                } else if (e.type === 'composite_glitch') {
+                    ctx.shadowBlur = 8;
+                    if (e.shieldHp > 0) {
+                        ctx.shadowColor = '#ffffff'; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3; ctx.beginPath();
+                        for(let i = 0; i < 6; i++) { let angle = i * Math.PI / 3 + (gameFrame * 0.01); ctx.lineTo(Math.cos(angle) * (e.size * 1.4), Math.sin(angle) * (e.size * 1.4)); }
+                        ctx.closePath(); ctx.stroke();
+                    }
+                    ctx.shadowColor = '#00ffcc'; ctx.strokeStyle = '#00ffcc'; ctx.strokeRect(-e.size*0.8, -e.size*0.8, e.size*1.6, e.size*1.6);
+                    ctx.fillStyle = '#00ffcc'; ctx.fillRect(-e.size*0.3, -e.size*0.3, e.size*0.6, e.size*0.6);
+                } else if (e.type === 'shell_core') {
+                    ctx.shadowBlur = 8;
+                    if (e.shellHp > 0) {
+                        ctx.shadowColor = '#00ffcc'; ctx.strokeStyle = '#00ffcc'; ctx.lineWidth = 3; ctx.beginPath();
+                        for (let i = 0; i < 6; i++) { let angle = i * Math.PI / 3 + (gameFrame * 0.01); ctx.lineTo(Math.cos(angle) * (e.size * 1.3), Math.sin(angle) * (e.size * 1.3)); }
+                        ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5;
+                        ctx.beginPath(); moveTo(0, -e.size * 0.6); ctx.lineTo(e.size * 0.5, 0); ctx.lineTo(0, e.size * 0.6); ctx.lineTo(-e.size * 0.5, 0); ctx.closePath(); ctx.stroke(); ctx.strokeRect(-e.size*0.18, -e.size*0.18, e.size*0.36, e.size*0.36);
+                    } else {
+                        ctx.shadowColor = '#ffffff'; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2;
+                        ctx.beginPath(); ctx.arc(0, 0, e.size * 1.1, 0, Math.PI * 2); ctx.stroke();
+                        ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(0, 0, e.size * 0.4, 0, Math.PI * 2); ctx.fill();
+                        ctx.beginPath(); ctx.moveTo(-e.size * 0.8, 0); ctx.lineTo(e.size * 0.8, 0); ctx.moveTo(0, -e.size * 0.8); ctx.lineTo(0, e.size * 0.8); ctx.stroke();
+                    }
+                } else {
+                    ctx.beginPath(); let spikes = 7; let rot = -Math.PI/2 + (e.freezeTimer > 0 ? 0 : gameFrame * 0.01) + e.seed; let step = Math.PI / spikes;
+                    for (let i = 0; i < spikes; i++) { ctx.lineTo(Math.cos(rot) * e.size, Math.sin(rot) * e.size); rot += step; ctx.lineTo(Math.cos(rot) * (e.size * 0.55), Math.sin(rot) * (e.size * 0.55)); rot += step; }
+                    ctx.closePath(); ctx.fill(); ctx.stroke();
+                }
+                ctx.shadowBlur = 0;
+
+                if (e.hp < e.maxHp || isBoss || (e.type === 'composite_glitch' && e.shieldHp > 0) || (e.type === 'shell_core' && e.shellHp > 0)) {
+                    let barW = isBoss ? 60 : 30; ctx.fillStyle = '#222'; ctx.fillRect(-barW/2, -e.size - 10, barW, 5);
+                    if (e.type === 'composite_glitch' && e.shieldHp > 0) { ctx.fillStyle = '#ffffff'; ctx.fillRect(-barW/2, -e.size - 10, barW * (e.shieldHp / e.maxShieldHp), 5); } 
+                    else if (e.type === 'shell_core' && e.shellHp > 0) { ctx.fillStyle = '#00ffcc'; ctx.fillRect(-barW/2, -e.size - 10, barW * (e.shellHp / e.maxShieldHp), 5); } 
+                    else { ctx.fillStyle = eColor; ctx.fillRect(-barW/2, -e.size - 10, barW * (e.hp / e.maxHp), 5); }
+                }
+                ctx.restore();
+            }
+
+            for (let p of particles) { ctx.save(); ctx.globalAlpha = p.alpha; ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, p.size, p.size); ctx.restore(); }
+            ctx.globalAlpha = 1.0;
+
+            if (bossWarningTimer > 0) {
+                ctx.fillStyle = gameFrame % 20 < 10 ? "rgba(255,0,50,0.15)" : "rgba(0,0,0,0)"; ctx.fillRect(0, 0, V_WIDTH, V_HEIGHT);
+                ctx.font = 'bold 18px "Courier New"'; ctx.fillStyle = '#ff0055'; ctx.textAlign = 'center'; ctx.shadowBlur = 15; ctx.shadowColor = '#ff0055';
+                let warnText = bossToSpawn === 'final_boss' ? '⚠️ WARNING: OMEGA BOSS DETECTED ⚠️' : '⚠️ WARNING: MID-BOSS APPROACHING ⚠️';
+                ctx.fillText(warnText, V_WIDTH / 2, V_HEIGHT / 3); ctx.shadowBlur = 0;
+            }
+
+            ctx.font = 'bold 13px "Courier New", monospace';
+            ctx.fillStyle = '#00f0ff'; ctx.textAlign = 'left'; ctx.fillText(`▶ LV: ${level}`, 15, 25);
+            ctx.fillStyle = '#ffd700'; ctx.textAlign = 'center'; ctx.fillText(`🏆 BEST: ${bestScore}`, V_WIDTH / 2, 25);
+            ctx.fillStyle = '#00f0ff'; ctx.textAlign = 'right'; ctx.fillText(`▶ SCORE: ${score}`, V_WIDTH - 15, 25);
+
+            ctx.fillStyle = 'rgba(0, 240, 255, 0.1)'; ctx.fillRect(15, 35, V_WIDTH - 30, 6);
+            ctx.fillStyle = '#00ffcc'; ctx.fillRect(15, 35, (V_WIDTH - 30) * (xp / nextXp), 6);
+
+            let minutes = Math.floor(remainingTime / 60); let seconds = remainingTime % 60;
+            if (remainingTime <= 300) {
+                ctx.fillStyle = gameFrame % 30 < 15 ? '#ff0055' : '#ffaa00'; ctx.font = 'bold 13px "Courier New", monospace'; ctx.textAlign = 'center';
+                ctx.fillText(`⚠️ HARD MODE: ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`, V_WIDTH / 2, 54);
+            } else {
+                ctx.fillStyle = '#ff3333'; ctx.textAlign = 'center'; ctx.fillText(`⏱️ TIME: ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`, V_WIDTH / 2, 54);
+            }
+
+            ctx.fillStyle = '#00f0ff'; ctx.font = '11px "Courier New", monospace'; ctx.textAlign = 'left'; ctx.fillText(`CORE_INTEGRITY:`, 15, V_HEIGHT - 26);
+            let heartStr = '■ '.repeat(Math.max(0, player.life)); let emptyStr = '□ '.repeat(Math.max(0, player.maxLife - player.life));
+            ctx.font = 'bold 15px sans-serif'; ctx.fillStyle = player.life === 1 ? '#ff3333' : '#00ffcc'; ctx.fillText(heartStr, 15, V_HEIGHT - 10);
+            ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.fillText(emptyStr, 15 + ctx.measureText(heartStr).width, V_HEIGHT - 10);
+
+            ctx.save(); ctx.lineWidth = 2;
+            if (bombCount > 0) { ctx.strokeStyle = '#ff3366'; ctx.shadowBlur = 8; ctx.shadowColor = '#ff3366'; ctx.fillStyle = 'rgba(255, 51, 102, 0.1)'; } 
+            else { ctx.strokeStyle = '#444455'; ctx.fillStyle = 'rgba(68, 68, 85, 0.05)'; }
+            ctx.beginPath(); ctx.strokeRect(280, 580, 65, 45); ctx.fillRect(280, 580, 65, 45); ctx.shadowBlur = 0;
+            ctx.font = 'bold 11px "Courier New", monospace'; ctx.fillStyle = bombCount > 0 ? '#ff3366' : '#555566'; ctx.textAlign = 'center';
+            ctx.fillText('BOMB', 312, 598); ctx.font = 'bold 13px "Courier New", monospace'; ctx.fillText(`[${bombCount}]`, 312, 616);
+            ctx.restore();
+
+            if (bombFlashTimer > 0) { ctx.fillStyle = `rgba(255, 255, 255, ${bombFlashTimer / 15})`; ctx.fillRect(0, 0, V_WIDTH, V_HEIGHT); }
+        }
+
+        loadBestScore();
+        gameLoop();
+
+        // 起動時にスキルツリーのドラッグパン機能をセットアップ
+        initSkillTreeDragPan();
+    </script>
+</body>
+</html>
