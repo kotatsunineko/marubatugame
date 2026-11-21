@@ -1,0 +1,1512 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EGG - Release of Yavalath</title>
+
+<style>
+:root {
+  --bg: #111827;
+  --panel: #1f2937;
+  --text: #f3f4f6;
+  --muted: #9ca3af;
+  --accent: #60a5fa;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: radial-gradient(circle at top, #26354b, #111827 70%);
+  color: var(--text);
+  font-family: system-ui, sans-serif;
+  padding: 20px;
+}
+
+.container {
+  max-width: 1150px;
+  margin: auto;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 22px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 32px;
+  letter-spacing: 3px;
+}
+
+.subtitle {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.panel {
+  background: rgba(31,41,55,.95);
+  border: 1px solid #374151;
+  border-radius: 14px;
+  padding: 18px;
+  margin-bottom: 15px;
+}
+
+.setup {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+select, button, input[type="text"] {
+  border: 1px solid #4b5563;
+  border-radius: 9px;
+  padding: 10px 16px;
+  font-size: 15px;
+}
+
+select, input[type="text"] {
+  background: #111827;
+  color: white;
+}
+
+input[type="text"]:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* プレイヤー名入力エリア */
+.name-inputs {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #374151;
+}
+
+.name-input-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #111827;
+  border: 1px solid #374151;
+  border-radius: 9px;
+  padding: 6px 10px;
+}
+
+.name-input-item input {
+  border: none;
+  background: transparent;
+  padding: 4px 6px;
+  width: 110px;
+  font-size: 14px;
+}
+
+.name-input-item input:focus {
+  outline: 1px solid var(--accent);
+  border-radius: 5px;
+}
+
+button {
+  background: #2563eb;
+  color: white;
+  cursor: pointer;
+  font-weight: 600;
+  transition: .15s;
+}
+
+button:hover:not(:disabled) {
+  filter: brightness(1.2);
+}
+
+button.secondary {
+  background: #374151;
+}
+
+button:disabled {
+  opacity: .35;
+  cursor: not-allowed;
+}
+
+.status {
+  text-align: center;
+  padding: 12px;
+  font-size: 18px;
+  font-weight: bold;
+  border-radius: 10px;
+  background: #111827;
+  margin-bottom: 14px;
+}
+
+.status small {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: normal;
+  margin-top: 5px;
+}
+
+.players {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  justify-content: center;
+}
+
+.player {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #111827;
+  border: 2px solid transparent;
+  border-radius: 9px;
+  padding: 9px 12px;
+  min-width: 115px;
+}
+
+.player.current {
+  border-color: var(--accent);
+}
+
+.player.eliminated {
+  opacity: .55;
+}
+
+.dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 13px;
+  font-weight: bold;
+  flex-shrink: 0;
+  transition: filter .2s, color .2s;
+}
+
+/* 脱落プレイヤーのドット表示（黒っぽく） */
+.player.eliminated .dot {
+  filter: brightness(0.32) saturate(0.45);
+  color: #9ca3af;
+}
+
+.player-info {
+  font-size: 13px;
+}
+
+.player-info small {
+  display: block;
+  color: var(--muted);
+}
+
+/* 盤面 */
+
+.board-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  overflow: visible;
+  background: #172235;
+  border-radius: 12px;
+  padding: 10px;
+}
+
+svg {
+  display: block;
+  width: 100%;
+  max-width: 1000px;
+  height: auto;
+  overflow: visible;
+  touch-action: manipulation;
+}
+
+.cell {
+  fill: #34445a;
+  stroke: #64748b;
+  stroke-width: 1.4;
+  cursor: pointer;
+  transition: fill .12s;
+}
+
+.cell:hover {
+  fill: #526b88;
+}
+
+/* コマの外側 */
+
+.piece {
+  stroke: rgba(255,255,255,.65);
+  stroke-width: 2;
+  pointer-events: none;
+  transition: filter .2s, stroke .2s;
+}
+
+/* 脱落したコマの外側（黒っぽく） */
+.piece.eliminated {
+  filter: brightness(0.32) saturate(0.45);
+  stroke: rgba(255,255,255,.22);
+}
+
+/* コマのアイコン */
+
+.piece-icon {
+  fill: white;
+  font-family: Arial, sans-serif;
+  font-weight: bold;
+  font-size: 24px;
+  text-anchor: middle;
+  dominant-baseline: central;
+  pointer-events: none;
+  paint-order: stroke;
+  stroke: rgba(0,0,0,.4);
+  stroke-width: 1.5px;
+  stroke-linejoin: round;
+  transition: fill .2s;
+}
+
+/* 脱落したコマのアイコン（色は暗め・形はそのまま） */
+.piece-icon.eliminated {
+  fill: #9ca3af;
+  stroke: rgba(0,0,0,.75);
+}
+
+#message {
+  text-align: center;
+  font-weight: bold;
+  margin-top: 12px;
+  min-height: 24px;
+}
+
+.rules {
+  font-size: 13px;
+  line-height: 1.9;
+  color: #d1d5db;
+}
+
+.rules strong {
+  color: white;
+}
+
+.rule-controls {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+  padding-top: 15px;
+  border-top: 1px solid #374151;
+}
+
+.undo-button {
+  background: #d97706;
+  min-width: 150px;
+}
+
+.restart-button {
+  background: #374151;
+  min-width: 150px;
+}
+
+footer {
+  text-align: center;
+  color: #6b7280;
+  font-size: 11px;
+  margin-top: 20px;
+}
+
+/* ========================================
+   勝利演出モーダル
+   ======================================== */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(9, 13, 22, 0.78);
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .25s ease, visibility .25s ease;
+}
+
+.modal-overlay.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+.modal-card {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  background: linear-gradient(160deg, #1f2937, #111827);
+  border: 2px solid #fbbf24;
+  border-radius: 20px;
+  padding: 32px 24px 26px;
+  text-align: center;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.75),
+              0 0 35px rgba(251, 191, 36, 0.25);
+  transform: scale(0.85) translateY(15px);
+  transition: transform .35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  overflow: hidden;
+}
+
+.modal-overlay.show .modal-card {
+  transform: scale(1) translateY(0);
+}
+
+.modal-trophy {
+  font-size: 56px;
+  line-height: 1;
+  margin-bottom: 12px;
+  animation: trophyBounce 1.2s ease infinite alternate;
+}
+
+@keyframes trophyBounce {
+  from { transform: translateY(0) scale(1); }
+  to { transform: translateY(-6px) scale(1.06); }
+}
+
+.modal-badge {
+  display: inline-block;
+  background: rgba(251, 191, 36, 0.16);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  padding: 4px 14px;
+  border-radius: 999px;
+  margin-bottom: 14px;
+}
+
+.modal-winner-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 8px 0 10px;
+}
+
+.modal-winner-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: bold;
+  color: white;
+  border: 2px solid rgba(255,255,255,.8);
+  box-shadow: 0 0 15px rgba(255,255,255,.25);
+  flex-shrink: 0;
+}
+
+.modal-winner-name {
+  font-size: 28px;
+  font-weight: 800;
+  color: white;
+  word-break: break-word;
+}
+
+.modal-reason {
+  color: #d1d5db;
+  font-size: 15px;
+  margin-bottom: 24px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.modal-actions button {
+  min-width: 140px;
+  padding: 12px 18px;
+}
+
+.confetti-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.confetti-piece {
+  position: absolute;
+  top: -12px;
+  width: 8px;
+  height: 14px;
+  border-radius: 2px;
+  opacity: 0.9;
+  animation: confettiFall linear forwards;
+}
+
+@keyframes confettiFall {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(420px) rotate(540deg);
+    opacity: 0;
+  }
+}
+
+@media(max-width:600px) {
+  body {
+    padding: 8px;
+  }
+
+  h1 {
+    font-size: 25px;
+  }
+
+  .panel {
+    padding: 10px;
+  }
+
+  .player {
+    min-width: 85px;
+    padding: 7px;
+  }
+
+  .board-wrap {
+    padding: 2px;
+  }
+
+  .name-input-item input {
+    width: 90px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<header>
+  <h1>EGG</h1>
+  <div class="subtitle">RELEASE OF YAVALATH</div>
+</header>
+
+<!-- 人数・名前設定 -->
+
+<div class="panel">
+  <div class="setup">
+    <label for="playerCount">プレイ人数</label>
+
+    <select id="playerCount" onchange="renderNameInputs()">
+      <option value="2">2人</option>
+      <option value="3" selected>3人</option>
+      <option value="4">4人</option>
+      <option value="5">5人</option>
+    </select>
+
+    <button onclick="startGame()">ゲーム開始</button>
+  </div>
+
+  <div class="name-inputs" id="nameInputs"></div>
+</div>
+
+<!-- プレイヤー情報 -->
+
+<div class="panel">
+
+  <div class="status" id="status">
+    ゲームを開始してください
+    <small>人数と名前を設定してゲーム開始を押してください</small>
+  </div>
+
+  <div class="players" id="players"></div>
+
+</div>
+
+<!-- ゲーム盤面 -->
+
+<div class="panel">
+
+  <div class="board-wrap">
+
+    <svg id="board"
+         viewBox="0 0 1000 700"
+         xmlns="http://www.w3.org/2000/svg"
+         aria-label="ゲーム盤面">
+    </svg>
+
+  </div>
+
+  <div id="message"></div>
+
+</div>
+
+<!-- ゲームルール -->
+
+<div class="panel rules">
+
+  <strong>ゲームルール</strong><br>
+
+  ・順番に自分のコマを1個配置します。<br>
+  ・自分のコマを直線に4個以上並べると勝利です。<br>
+  ・自分のコマを直線に3個並べると脱落します。<br>
+  ・脱落したプレイヤーのコマは盤面に残り、黒っぽく変化します。<br>
+  ・脱落したプレイヤーのターンはスキップします。<br>
+  ・最後まで残ったプレイヤーが勝利します。<br>
+  ・同じ手で4個と3個が同時に成立した場合は4個の勝利を優先します。<br>
+
+  <div class="rule-controls">
+
+    <button
+      id="undoButton"
+      class="undo-button"
+      onclick="undoMove()"
+      disabled>
+      ↶ 1手戻す
+    </button>
+
+    <button
+      class="restart-button"
+      onclick="startGame()">
+      最初からやり直す
+    </button>
+
+  </div>
+
+</div>
+
+<footer>
+  EGG - Release of Yavalath / Local Multiplayer
+</footer>
+
+</div>
+
+<!-- 勝利・決着演出モーダル -->
+<div class="modal-overlay" id="resultModal" role="dialog" aria-modal="true">
+  <div class="modal-card" id="modalCard">
+    <div class="confetti-layer" id="confettiLayer"></div>
+    <div class="modal-trophy" id="modalTrophy">🏆</div>
+    <div class="modal-badge" id="modalBadge">VICTORY</div>
+
+    <div class="modal-winner-row" id="modalWinnerRow">
+      <span class="modal-winner-icon" id="modalWinnerIcon">★</span>
+      <span class="modal-winner-name" id="modalWinnerName">1P</span>
+    </div>
+
+    <div class="modal-reason" id="modalReason">4個連続！</div>
+
+    <div class="modal-actions">
+      <button onclick="restartFromModal()">もう一度遊ぶ</button>
+      <button class="secondary" onclick="closeResultModal()">盤面を見る</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+// ========================================
+// 基本設定
+// ========================================
+
+const BOARD_RADIUS = 4;
+
+const CENTER_X = 500;
+const CENTER_Y = 350;
+
+const CELL_SIZE = 42;
+
+const COLORS = [
+  "#ef4444",
+  "#3b82f6",
+  "#22c55e",
+  "#eab308",
+  "#a855f7"
+];
+
+// プレイヤーごとのアイコン
+const PLAYER_ICONS = [
+  "★",
+  "◆",
+  "▲",
+  "■",
+  "✚"
+];
+
+// 3方向の判定
+const DIRECTIONS = [
+  [1, 0],
+  [0, 1],
+  [1, -1]
+];
+
+let cells = [];
+let players = [];
+
+let currentPlayer = 0;
+
+let gameStarted = false;
+let gameFinished = false;
+
+let moveCount = 0;
+
+let history = [];
+
+// ========================================
+// プレイヤー名入力欄の生成
+// ========================================
+
+function renderNameInputs() {
+
+  const count = Number(
+    document.getElementById("playerCount").value
+  );
+
+  const container =
+    document.getElementById("nameInputs");
+
+  // 既に入力されている値を保持
+  const existingValues = Array.from(
+    container.querySelectorAll("input")
+  ).map(input => input.value);
+
+  container.innerHTML = "";
+
+  for (let i = 0; i < count; i++) {
+
+    const item = document.createElement("div");
+    item.className = "name-input-item";
+
+    const dot = document.createElement("span");
+    dot.className = "dot";
+    dot.style.background = COLORS[i];
+    dot.textContent = PLAYER_ICONS[i];
+
+    const input = document.createElement("input");
+    input.type = "text";
+    input.maxLength = 12;
+    input.placeholder = `${i + 1}P`;
+    input.value = existingValues[i] ?? "";
+    input.setAttribute("aria-label", `${i + 1}人目のプレイヤー名`);
+
+    item.appendChild(dot);
+    item.appendChild(input);
+    container.appendChild(item);
+
+  }
+
+}
+
+// ========================================
+// 盤面生成
+// ========================================
+
+function createBoard() {
+
+  cells = [];
+
+  for (
+    let q = -BOARD_RADIUS;
+    q <= BOARD_RADIUS;
+    q++
+  ) {
+
+    for (
+      let r = -BOARD_RADIUS;
+      r <= BOARD_RADIUS;
+      r++
+    ) {
+
+      const s = -q - r;
+
+      if (
+        Math.max(
+          Math.abs(q),
+          Math.abs(r),
+          Math.abs(s)
+        ) <= BOARD_RADIUS
+      ) {
+
+        cells.push({
+          q,
+          r,
+          owner: null
+        });
+
+      }
+
+    }
+
+  }
+
+}
+
+// ========================================
+// 座標取得
+// ========================================
+
+function getPosition(q, r) {
+
+  return {
+    x: CENTER_X +
+       CELL_SIZE * Math.sqrt(3) * (q + r / 2),
+
+    y: CENTER_Y +
+       CELL_SIZE * 1.5 * r
+  };
+
+}
+
+function getCell(q, r) {
+
+  return cells.find(
+    c => c.q === q && c.r === r
+  );
+
+}
+
+// ========================================
+// ゲーム開始
+// ========================================
+
+function startGame() {
+
+  closeResultModal();
+
+  const count = Number(
+    document.getElementById("playerCount").value
+  );
+
+  const nameInputs = Array.from(
+    document.querySelectorAll("#nameInputs input")
+  );
+
+  createBoard();
+
+  players = [];
+
+  for (let i = 0; i < count; i++) {
+
+    const rawName = nameInputs[i]
+      ? nameInputs[i].value.trim()
+      : "";
+
+    players.push({
+      id: i,
+      name: rawName || `${i + 1}P`,
+      color: COLORS[i],
+      icon: PLAYER_ICONS[i],
+      eliminated: false
+    });
+
+  }
+
+  currentPlayer = 0;
+
+  gameStarted = true;
+  gameFinished = false;
+
+  moveCount = 0;
+
+  history = [];
+
+  document.getElementById("message").textContent = "";
+
+  renderAll();
+  updateStatus();
+  updateUndoButton();
+
+}
+
+// ========================================
+// 履歴保存
+// ========================================
+
+function saveHistory() {
+
+  const snapshot = {
+
+    cells: cells.map(cell => ({
+      q: cell.q,
+      r: cell.r,
+      owner: cell.owner
+    })),
+
+    players: players.map(player => ({
+      ...player
+    })),
+
+    currentPlayer: currentPlayer,
+
+    gameStarted: gameStarted,
+    gameFinished: gameFinished,
+
+    moveCount: moveCount,
+
+    message: document.getElementById("message").textContent,
+
+    status: document.getElementById("status").innerHTML
+
+  };
+
+  history.push(snapshot);
+
+}
+
+// ========================================
+// 1手戻す
+// ========================================
+
+function undoMove() {
+
+  if (history.length === 0) {
+    return;
+  }
+
+  closeResultModal();
+
+  const snapshot = history.pop();
+
+  cells = snapshot.cells.map(cell => ({
+    ...cell
+  }));
+
+  players = snapshot.players.map(player => ({
+    ...player
+  }));
+
+  currentPlayer = snapshot.currentPlayer;
+
+  gameStarted = snapshot.gameStarted;
+  gameFinished = snapshot.gameFinished;
+
+  moveCount = snapshot.moveCount;
+
+  document.getElementById("message").textContent =
+    snapshot.message;
+
+  document.getElementById("status").innerHTML =
+    snapshot.status;
+
+  renderAll();
+
+  updateUndoButton();
+
+}
+
+// ========================================
+// SVG要素作成
+// ========================================
+
+function createSvgElement(tag) {
+
+  return document.createElementNS(
+    "http://www.w3.org/2000/svg",
+    tag
+  );
+
+}
+
+// ========================================
+// 盤面描画
+// ========================================
+
+function renderBoard() {
+
+  const svg = document.getElementById("board");
+
+  svg.innerHTML = "";
+
+  for (const cell of cells) {
+
+    const pos = getPosition(cell.q, cell.r);
+
+    const points = [];
+
+    for (let i = 0; i < 6; i++) {
+
+      const angle =
+        (Math.PI / 180) * (30 + 60 * i);
+
+      const x =
+        pos.x + CELL_SIZE * Math.cos(angle);
+
+      const y =
+        pos.y + CELL_SIZE * Math.sin(angle);
+
+      points.push(`${x},${y}`);
+
+    }
+
+    // マス目
+    const polygon = createSvgElement("polygon");
+
+    polygon.setAttribute(
+      "points",
+      points.join(" ")
+    );
+
+    polygon.setAttribute("class", "cell");
+
+    polygon.dataset.q = cell.q;
+    polygon.dataset.r = cell.r;
+
+    polygon.addEventListener("click", () => {
+      placePiece(cell.q, cell.r);
+    });
+
+    svg.appendChild(polygon);
+
+    // コマの描画
+    if (cell.owner !== null) {
+
+      const player = players[cell.owner];
+
+      const eliminated = player.eliminated;
+
+      // コマ本体
+      const circle = createSvgElement("circle");
+
+      circle.setAttribute("cx", pos.x);
+      circle.setAttribute("cy", pos.y);
+      circle.setAttribute("r", 26);
+
+      circle.setAttribute("fill", player.color);
+      circle.setAttribute(
+        "class",
+        eliminated ? "piece eliminated" : "piece"
+      );
+
+      svg.appendChild(circle);
+
+      // コマのアイコン（脱落時も元のアイコンを維持）
+      const icon = createSvgElement("text");
+
+      icon.setAttribute("x", pos.x);
+      icon.setAttribute("y", pos.y);
+
+      icon.textContent = player.icon;
+
+      icon.setAttribute(
+        "class",
+        eliminated ? "piece-icon eliminated" : "piece-icon"
+      );
+
+      svg.appendChild(icon);
+
+    }
+
+  }
+
+}
+
+// ========================================
+// プレイヤー表示
+// ========================================
+
+function renderPlayers() {
+
+  const container =
+    document.getElementById("players");
+
+  container.innerHTML = "";
+
+  players.forEach((player, index) => {
+
+    const div = document.createElement("div");
+
+    div.className = "player";
+
+    if (
+      index === currentPlayer &&
+      !gameFinished
+    ) {
+
+      div.classList.add("current");
+
+    }
+
+    if (player.eliminated) {
+
+      div.classList.add("eliminated");
+
+    }
+
+    // プレイヤーアイコン（脱落時も元のアイコンを維持）
+    const dot = document.createElement("span");
+
+    dot.className = "dot";
+
+    dot.style.background = player.color;
+
+    dot.textContent = player.icon;
+
+    const info = document.createElement("span");
+
+    info.className = "player-info";
+
+    const name = document.createElement("span");
+
+    name.textContent = player.name;
+
+    const sub = document.createElement("small");
+
+    sub.textContent = player.eliminated
+      ? "脱落"
+      : index === currentPlayer && !gameFinished
+        ? "手番"
+        : "参加中";
+
+    info.appendChild(name);
+    info.appendChild(sub);
+
+    div.appendChild(dot);
+    div.appendChild(info);
+
+    container.appendChild(div);
+
+  });
+
+}
+
+// ========================================
+// コマ配置
+// ========================================
+
+function placePiece(q, r) {
+
+  if (!gameStarted || gameFinished) {
+    return;
+  }
+
+  const cell = getCell(q, r);
+
+  if (!cell || cell.owner !== null) {
+    return;
+  }
+
+  const player = players[currentPlayer];
+
+  if (player.eliminated) {
+    return;
+  }
+
+  // 操作前の状態を保存
+  saveHistory();
+
+  // コマを配置
+  cell.owner = currentPlayer;
+
+  moveCount++;
+
+  // 先に盤面を描画
+  renderAll();
+
+  // 4個・3個の判定
+  const hasFour = checkLine(
+    q,
+    r,
+    currentPlayer,
+    4
+  );
+
+  const hasThree = checkLine(
+    q,
+    r,
+    currentPlayer,
+    3
+  );
+
+  // 4個を優先
+  if (hasFour) {
+
+    finishGame(
+      currentPlayer,
+      "4個連続！"
+    );
+
+    return;
+
+  }
+
+  // 3個で脱落
+  if (hasThree) {
+
+    player.eliminated = true;
+
+    // 脱落した瞬間に全コマを黒っぽく変更
+    renderAll();
+
+    document.getElementById("message").textContent =
+      `${player.name} が3個並べて脱落しました！`;
+
+    const remaining = getRemainingPlayers();
+
+    // 最後の1人になった場合
+    if (remaining.length === 1) {
+
+      finishGame(
+        remaining[0].id,
+        "最後まで生き残りました！"
+      );
+
+      return;
+
+    }
+
+    if (remaining.length === 0) {
+
+      finishDraw();
+
+      return;
+
+    }
+
+  }
+
+  // 次のプレイヤーへ
+  nextTurn();
+
+  // 盤面が埋まった場合
+  if (cells.every(c => c.owner !== null)) {
+
+    finishDraw();
+
+    return;
+
+  }
+
+  renderAll();
+
+  updateStatus();
+  updateUndoButton();
+
+}
+
+// ========================================
+// 連続数の判定
+// ========================================
+
+function checkLine(q, r, playerId, target) {
+
+  for (const [dq, dr] of DIRECTIONS) {
+
+    let count = 1;
+
+    count += countDirection(
+      q,
+      r,
+      dq,
+      dr,
+      playerId
+    );
+
+    count += countDirection(
+      q,
+      r,
+      -dq,
+      -dr,
+      playerId
+    );
+
+    if (count >= target) {
+      return true;
+    }
+
+  }
+
+  return false;
+
+}
+
+function countDirection(
+  q,
+  r,
+  dq,
+  dr,
+  playerId
+) {
+
+  let count = 0;
+
+  let x = q + dq;
+  let y = r + dr;
+
+  while (true) {
+
+    const cell = getCell(x, y);
+
+    if (!cell || cell.owner !== playerId) {
+      break;
+    }
+
+    count++;
+
+    x += dq;
+    y += dr;
+
+  }
+
+  return count;
+
+}
+
+// ========================================
+// ターン管理
+// ========================================
+
+function nextTurn() {
+
+  if (gameFinished) {
+    return;
+  }
+
+  const total = players.length;
+
+  for (let i = 0; i < total; i++) {
+
+    currentPlayer =
+      (currentPlayer + 1) % total;
+
+    if (!players[currentPlayer].eliminated) {
+      return;
+    }
+
+  }
+
+}
+
+// ========================================
+// 残りプレイヤー
+// ========================================
+
+function getRemainingPlayers() {
+
+  return players.filter(
+    p => !p.eliminated
+  );
+
+}
+
+// ========================================
+// 勝敗処理 & モーダル演出
+// ========================================
+
+function finishGame(winnerId, reason) {
+
+  gameFinished = true;
+
+  const winner = players[winnerId];
+
+  renderAll();
+
+  document.getElementById("status").innerHTML =
+    `🏆 ${winner.name} の勝利！` +
+    `<small>${reason}</small>`;
+
+  document.getElementById("message").textContent =
+    `${winner.name} おめでとうございます！`;
+
+  updateUndoButton();
+  renderPlayers();
+
+  showVictoryModal(winner, reason);
+
+}
+
+function finishDraw() {
+
+  gameFinished = true;
+
+  renderAll();
+
+  document.getElementById("status").innerHTML =
+    `ゲーム終了` +
+    `<small>引き分けです</small>`;
+
+  document.getElementById("message").textContent =
+    "盤面が埋まりました。";
+
+  updateUndoButton();
+
+  showDrawModal();
+
+}
+
+function showVictoryModal(winner, reason) {
+
+  const modal = document.getElementById("resultModal");
+  const card = document.getElementById("modalCard");
+  const trophy = document.getElementById("modalTrophy");
+  const badge = document.getElementById("modalBadge");
+  const winnerRow = document.getElementById("modalWinnerRow");
+  const winnerIcon = document.getElementById("modalWinnerIcon");
+  const winnerName = document.getElementById("modalWinnerName");
+  const modalReason = document.getElementById("modalReason");
+
+  card.style.borderColor = winner.color;
+  card.style.boxShadow =
+    `0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 36px ${winner.color}55`;
+
+  trophy.textContent = "🏆";
+  badge.textContent = "VICTORY";
+  badge.style.color = "#fbbf24";
+  badge.style.borderColor = "rgba(251, 191, 36, 0.45)";
+  badge.style.background = "rgba(251, 191, 36, 0.16)";
+
+  winnerRow.style.display = "flex";
+  winnerIcon.style.background = winner.color;
+  winnerIcon.textContent = winner.icon;
+  winnerName.textContent = `${winner.name} の勝利！`;
+
+  modalReason.textContent = `${reason}（総手数: ${moveCount}手）`;
+
+  spawnConfetti(winner.color);
+
+  modal.classList.add("show");
+
+}
+
+function showDrawModal() {
+
+  const modal = document.getElementById("resultModal");
+  const card = document.getElementById("modalCard");
+  const trophy = document.getElementById("modalTrophy");
+  const badge = document.getElementById("modalBadge");
+  const winnerRow = document.getElementById("modalWinnerRow");
+  const winnerName = document.getElementById("modalWinnerName");
+  const winnerIcon = document.getElementById("modalWinnerIcon");
+  const modalReason = document.getElementById("modalReason");
+
+  card.style.borderColor = "#64748b";
+  card.style.boxShadow = "0 25px 50px -12px rgba(0, 0, 0, 0.8)";
+
+  trophy.textContent = "🤝";
+  badge.textContent = "DRAW";
+  badge.style.color = "#9ca3af";
+  badge.style.borderColor = "rgba(156, 163, 175, 0.4)";
+  badge.style.background = "rgba(156, 163, 175, 0.15)";
+
+  winnerRow.style.display = "flex";
+  winnerIcon.style.background = "#4b5563";
+  winnerIcon.textContent = "＝";
+  winnerName.textContent = "引き分け";
+
+  modalReason.textContent = "すべてのマスが埋まりました。";
+
+  document.getElementById("confettiLayer").innerHTML = "";
+
+  modal.classList.add("show");
+
+}
+
+function closeResultModal() {
+
+  document.getElementById("resultModal").classList.remove("show");
+
+}
+
+function restartFromModal() {
+
+  closeResultModal();
+  startGame();
+
+}
+
+function spawnConfetti(accentColor) {
+
+  const layer = document.getElementById("confettiLayer");
+  layer.innerHTML = "";
+
+  const palette = [
+    accentColor,
+    "#fbbf24",
+    "#f3f4f6",
+    "#60a5fa",
+    "#34d399"
+  ];
+
+  for (let i = 0; i < 36; i++) {
+
+    const piece = document.createElement("span");
+    piece.className = "confetti-piece";
+
+    piece.style.left = `${Math.random() * 100}%`;
+    piece.style.background =
+      palette[Math.floor(Math.random() * palette.length)];
+    piece.style.animationDuration = `${1.8 + Math.random() * 1.6}s`;
+    piece.style.animationDelay = `${Math.random() * 0.6}s`;
+
+    layer.appendChild(piece);
+
+  }
+
+}
+
+// ========================================
+// 画面更新
+// ========================================
+
+function updateStatus() {
+
+  if (!gameStarted || gameFinished) {
+    return;
+  }
+
+  const player = players[currentPlayer];
+
+  document.getElementById("status").innerHTML =
+    `${player.name} のターン` +
+    `<small>コマを置く場所を選んでください</small>`;
+
+}
+
+function updateUndoButton() {
+
+  const button =
+    document.getElementById("undoButton");
+
+  button.disabled = history.length === 0;
+
+}
+
+function renderAll() {
+
+  renderBoard();
+  renderPlayers();
+
+}
+
+// ========================================
+// 初期画面
+// ========================================
+
+renderNameInputs();
+
+createBoard();
+
+renderBoard();
+
+updateUndoButton();
+
+</script>
+
+</body>
+</html>
