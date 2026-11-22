@@ -64,6 +64,12 @@ h1 {
   flex-wrap: wrap;
 }
 
+.setup-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 select, button, input[type="text"] {
   border: 1px solid #4b5563;
   border-radius: 9px;
@@ -136,29 +142,16 @@ button:disabled {
   cursor: not-allowed;
 }
 
-.status {
-  text-align: center;
-  padding: 12px;
-  font-size: 18px;
-  font-weight: bold;
-  border-radius: 10px;
-  background: #111827;
-  margin-bottom: 14px;
-}
-
-.status small {
-  display: block;
-  font-size: 12px;
-  color: var(--muted);
-  font-weight: normal;
-  margin-top: 5px;
-}
-
 .players {
   display: flex;
   flex-wrap: wrap;
   gap: 9px;
   justify-content: center;
+  margin-bottom: 14px;
+}
+
+.players:empty {
+  margin-bottom: 0;
 }
 
 .player {
@@ -207,6 +200,44 @@ button:disabled {
 .player-info small {
   display: block;
   color: var(--muted);
+}
+
+.status {
+  text-align: center;
+  padding: 12px;
+  font-size: 18px;
+  font-weight: bold;
+  border-radius: 10px;
+  background: #111827;
+}
+
+.status-main {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+}
+
+.status-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 14px;
+  font-weight: bold;
+  border: 1.5px solid rgba(255,255,255,.7);
+  flex-shrink: 0;
+}
+
+.status small {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: normal;
+  margin-top: 5px;
 }
 
 /* 盤面 */
@@ -508,18 +539,33 @@ footer {
   <div class="subtitle">RELEASE OF YAVALATH</div>
 </header>
 
-<!-- 人数・名前設定 -->
+<!-- 人数・名前・盤面サイズ設定 -->
 
 <div class="panel">
   <div class="setup">
-    <label for="playerCount">プレイ人数</label>
+    <div class="setup-group">
+      <label for="playerCount">プレイ人数</label>
+      <select id="playerCount" onchange="onPlayerCountChange()">
+        <option value="2">2人</option>
+        <option value="3" selected>3人</option>
+        <option value="4">4人</option>
+        <option value="5">5人</option>
+      </select>
+    </div>
 
-    <select id="playerCount" onchange="renderNameInputs()">
-      <option value="2">2人</option>
-      <option value="3" selected>3人</option>
-      <option value="4">4人</option>
-      <option value="5">5人</option>
-    </select>
+    <div class="setup-group">
+      <label for="boardSizeMode">盤面の広さ</label>
+      <select id="boardSizeMode" onchange="onBoardSizeChange()">
+        <option value="auto" selected>人数に合わせる</option>
+        <option value="4">半径4（61マス）</option>
+        <option value="5">半径5（91マス）</option>
+        <option value="6">半径6（127マス）</option>
+        <option value="7">半径7（169マス）</option>
+        <option value="8">半径8（217マス）</option>
+        <option value="9">半径9（271マス）</option>
+        <option value="10">半径10（331マス）</option>
+      </select>
+    </div>
 
     <button onclick="startGame()">ゲーム開始</button>
   </div>
@@ -527,16 +573,16 @@ footer {
   <div class="name-inputs" id="nameInputs"></div>
 </div>
 
-<!-- プレイヤー情報 -->
+<!-- プレイヤー情報（一覧を上・ターン表示を下に入れ替え） -->
 
 <div class="panel">
 
+  <div class="players" id="players"></div>
+
   <div class="status" id="status">
     ゲームを開始してください
-    <small>人数と名前を設定してゲーム開始を押してください</small>
+    <small>人数・盤面の広さ・名前を設定してゲーム開始を押してください</small>
   </div>
-
-  <div class="players" id="players"></div>
 
 </div>
 
@@ -571,6 +617,7 @@ footer {
   ・脱落したプレイヤーのターンはスキップします。<br>
   ・最後まで残ったプレイヤーが勝利します。<br>
   ・同じ手で4個と3個が同時に成立した場合は4個の勝利を優先します。<br>
+  ・盤面の広さは「人数に合わせる（2〜3人：半径4／4人：半径5／5人：半径6）」または半径4〜10の手動選択が可能です。<br>
 
   <div class="rule-controls">
 
@@ -626,12 +673,14 @@ footer {
 // 基本設定
 // ========================================
 
-const BOARD_RADIUS = 4;
-
-const CENTER_X = 500;
-const CENTER_Y = 350;
-
 const CELL_SIZE = 42;
+const MIN_BOARD_WIDTH = 1000;
+
+let boardRadius = 4;
+let boardWidth = MIN_BOARD_WIDTH;
+let boardHeight = 700;
+let centerX = MIN_BOARD_WIDTH / 2;
+let centerY = 350;
 
 const COLORS = [
   "#ef4444",
@@ -668,6 +717,69 @@ let gameFinished = false;
 let moveCount = 0;
 
 let history = [];
+
+// ========================================
+// HTMLエスケープ
+// ========================================
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+// ========================================
+// 盤面半径の決定・UI連動
+// ========================================
+
+function getResolvedBoardRadius(playerCount, sizeMode) {
+  const parsed = Number(sizeMode);
+  if (Number.isInteger(parsed) && parsed >= 4 && parsed <= 10) {
+    return parsed;
+  }
+  if (playerCount === 4) {
+    return 5;
+  }
+  if (playerCount >= 5) {
+    return 6;
+  }
+  return 4;
+}
+
+function updateBoardDimensions(radius) {
+  boardRadius = radius;
+  // 六角形盤面の横幅・縦幅に合わせて余白付きのviewBoxを自動計算
+  const neededWidth = Math.ceil(2 * boardRadius * CELL_SIZE * Math.sqrt(3) + CELL_SIZE * 4);
+  boardWidth = Math.max(MIN_BOARD_WIDTH, neededWidth);
+  boardHeight = Math.ceil((2 * boardRadius + 2) * CELL_SIZE * 1.5 + 70);
+  centerX = boardWidth / 2;
+  centerY = boardHeight / 2;
+
+  const svg = document.getElementById("board");
+  svg.setAttribute("viewBox", `0 0 ${boardWidth} ${boardHeight}`);
+}
+
+function refreshBoardPreviewIfIdle() {
+  if (!gameStarted) {
+    const count = Number(document.getElementById("playerCount").value);
+    const mode = document.getElementById("boardSizeMode").value;
+    updateBoardDimensions(getResolvedBoardRadius(count, mode));
+    createBoard();
+    renderBoard();
+  }
+}
+
+function onPlayerCountChange() {
+  renderNameInputs();
+  refreshBoardPreviewIfIdle();
+}
+
+function onBoardSizeChange() {
+  refreshBoardPreviewIfIdle();
+}
 
 // ========================================
 // プレイヤー名入力欄の生成
@@ -723,14 +835,14 @@ function createBoard() {
   cells = [];
 
   for (
-    let q = -BOARD_RADIUS;
-    q <= BOARD_RADIUS;
+    let q = -boardRadius;
+    q <= boardRadius;
     q++
   ) {
 
     for (
-      let r = -BOARD_RADIUS;
-      r <= BOARD_RADIUS;
+      let r = -boardRadius;
+      r <= boardRadius;
       r++
     ) {
 
@@ -741,7 +853,7 @@ function createBoard() {
           Math.abs(q),
           Math.abs(r),
           Math.abs(s)
-        ) <= BOARD_RADIUS
+        ) <= boardRadius
       ) {
 
         cells.push({
@@ -765,10 +877,10 @@ function createBoard() {
 function getPosition(q, r) {
 
   return {
-    x: CENTER_X +
+    x: centerX +
        CELL_SIZE * Math.sqrt(3) * (q + r / 2),
 
-    y: CENTER_Y +
+    y: centerY +
        CELL_SIZE * 1.5 * r
   };
 
@@ -794,10 +906,13 @@ function startGame() {
     document.getElementById("playerCount").value
   );
 
+  const mode = document.getElementById("boardSizeMode").value;
+
   const nameInputs = Array.from(
     document.querySelectorAll("#nameInputs input")
   );
 
+  updateBoardDimensions(getResolvedBoardRadius(count, mode));
   createBoard();
 
   players = [];
@@ -843,6 +958,9 @@ function saveHistory() {
 
   const snapshot = {
 
+    boardRadius: boardRadius,
+    boardSizeMode: document.getElementById("boardSizeMode").value,
+
     cells: cells.map(cell => ({
       q: cell.q,
       r: cell.r,
@@ -883,6 +1001,11 @@ function undoMove() {
   closeResultModal();
 
   const snapshot = history.pop();
+
+  if (snapshot.boardSizeMode) {
+    document.getElementById("boardSizeMode").value = snapshot.boardSizeMode;
+  }
+  updateBoardDimensions(snapshot.boardRadius ?? 4);
 
   cells = snapshot.cells.map(cell => ({
     ...cell
@@ -1318,8 +1441,11 @@ function finishGame(winnerId, reason) {
   renderAll();
 
   document.getElementById("status").innerHTML =
-    `🏆 ${winner.name} の勝利！` +
-    `<small>${reason}</small>`;
+    `<div class="status-main">` +
+      `<span class="status-icon" style="background:${winner.color}">${winner.icon}</span>` +
+      `<span>🏆 ${escapeHtml(winner.name)} の勝利！</span>` +
+    `</div>` +
+    `<small>${escapeHtml(reason)}</small>`;
 
   document.getElementById("message").textContent =
     `${winner.name} おめでとうございます！`;
@@ -1338,7 +1464,7 @@ function finishDraw() {
   renderAll();
 
   document.getElementById("status").innerHTML =
-    `ゲーム終了` +
+    `<div class="status-main">ゲーム終了</div>` +
     `<small>引き分けです</small>`;
 
   document.getElementById("message").textContent =
@@ -1473,7 +1599,10 @@ function updateStatus() {
   const player = players[currentPlayer];
 
   document.getElementById("status").innerHTML =
-    `${player.name} のターン` +
+    `<div class="status-main">` +
+      `<span class="status-icon" style="background:${player.color}">${player.icon}</span>` +
+      `<span>${escapeHtml(player.name)} のターン</span>` +
+    `</div>` +
     `<small>コマを置く場所を選んでください</small>`;
 
 }
@@ -1499,6 +1628,13 @@ function renderAll() {
 // ========================================
 
 renderNameInputs();
+
+updateBoardDimensions(
+  getResolvedBoardRadius(
+    Number(document.getElementById("playerCount").value),
+    document.getElementById("boardSizeMode").value
+  )
+);
 
 createBoard();
 
